@@ -124,6 +124,11 @@ tr.click{cursor:pointer}tr.click:hover td{background:var(--bg)}
 @media(max-width:900px){.split{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:600px){.week{grid-template-columns:minmax(0,1fr)}.day{min-height:0}table{font-size:13px}.two{grid-template-columns:minmax(0,1fr)}.stack thead{display:none}.stack tr{display:grid;padding-block:10px}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;white-space:normal;color:var(--mute)}.stack td:empty{display:none}}
 [hidden]{display:none!important}
+table.cal{table-layout:fixed;min-width:640px}table.cal td{height:110px;cursor:pointer;font-size:13px;border:1px solid var(--line)}table.cal td.out{background:var(--bg);cursor:default}
+table.cal td.cg{background:repeating-linear-gradient(135deg,var(--cg) 0 6px,transparent 6px 12px)}table.cal td.has{background:light-dark(#eef6f0,#1c2b21)}table.cal .dn{font-family:"Barlow Condensed";font-weight:600;font-size:18px}table.cal .h{font-weight:600;color:var(--forest2)}
+table.mth td.cell{min-width:44px;font-size:13px;padding:6px 4px;text-align:center}table.mth th{font-size:12px;padding:6px 4px}
+table.bulk td{padding:4px 5px;vertical-align:middle}table.bulk input,table.bulk select{min-height:38px;padding:5px 7px;font-size:15px}
+table.bulk tr.bad td{background:var(--warnbg)}table.bulk input.err{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn)}
 .bar2{display:block;height:6px;background:var(--cg);border-radius:9px;overflow:hidden;margin:4px 0}.bar2 i{display:block;height:100%;background:var(--forest2)}
 .mkList{display:grid;gap:6px;max-height:70vh;overflow:auto}
 .mkS{display:grid;text-align:left;gap:2px;font-weight:400;padding:10px 12px}.mkS.on{border-color:var(--forest);box-shadow:inset 4px 0 0 var(--forest)}
@@ -157,7 +162,8 @@ tr.click{cursor:pointer}tr.click:hover td{background:var(--bg)}
     <div class="bar">
       <select id="pSel" aria-label="Ouvrier"></select>
       <select id="zSel" aria-label="Zone"></select>
-      <div class="wk"><button id="wPrev" aria-label="Semaine précédente">←</button><b id="wLbl"></b><button id="wNext" aria-label="Semaine suivante">→</button></div>
+      <select id="vSel" aria-label="Affichage"><option value="day">Jour</option><option value="week">Semaine</option><option value="month">Mois</option></select>
+      <div class="wk"><button id="wPrev" aria-label="Période précédente">←</button><b id="wLbl"></b><button id="wNext" aria-label="Période suivante">→</button></div>
       <input type="date" id="wDate" aria-label="Aller à la date" style="width:170px">
       <button class="ghost" id="wBusy">Prochaine semaine chargée →</button>
       <span class="grow"></span>
@@ -181,9 +187,9 @@ tr.click{cursor:pointer}tr.click:hover td{background:var(--bg)}
         <div class="bar" style="margin:0"><button class="pri" type="submit">Enregistrer</button><button type="button" class="ghost" id="eCancel">Annuler</button></div>
       </form>
       <div>
-        <h2>Saisonniers à recruter</h2>
+        <div id="eVirtWrap"><h2>Saisonniers à recruter</h2>
         <p class="muted small" style="margin:0 0 10px">Proposés par le calcul quand les hommes fixes ne suffisent pas à tenir les fenêtres de passage. Ajoutez-les avec un vrai nom pour les intégrer à l’équipe.</p>
-        <div class="list" id="eVirt"></div>
+        <div class="list" id="eVirt"></div></div>
         <h2 style="margin:26px 0 8px">Équipe</h2>
         <div class="scroll"><table class="stack" id="eTbl"></table></div>
       </div>
@@ -239,7 +245,7 @@ tr.click{cursor:pointer}tr.click:hover td{background:var(--bg)}
 
   <section id="v-marche" hidden>
     <div class="split" style="grid-template-columns:minmax(0,320px) minmax(0,1fr)">
-      <div><input id="mkQ" type="search" placeholder="Chercher un client ou un site" style="margin-bottom:10px"><div class="mkList" id="mkSites"></div></div>
+      <div><input id="mkQ" type="search" placeholder="Chercher un client ou un site" style="margin-bottom:8px"><select id="mkBil" aria-label="Mode de facturation" style="margin-bottom:10px"><option value="">Tous les modes de facturation</option><option value="prestation">Au forfait (à la prestation)</option><option value="mensuel">Mensualités</option><option value="none">Mode non défini</option></select><div class="mkList" id="mkSites"></div></div>
       <div id="mkBody"></div>
     </div>
   </section>
@@ -337,7 +343,7 @@ const MOISL=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août',
 const JOURS=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
 const MTYPES=['Véhicule','Camion / benne','Tracteur','Nacelle','Tondeuse autoportée','Tondeuse','Débroussailleuse','Taille-haie','Souffleur','Tronçonneuse','Broyeur','Scarificateur','Pulvérisateur','Remorque','Autre'];
 const ACTC={TON:'#2e8b57',FAU:'#2e8b57',SCA:'#2e8b57',DES:'#a07a2c',PUL:'#a07a2c',ENG:'#a07a2c',TAI:'#1f8a8a',ELA:'#1f8a8a',ENT:'#5b6b8c',NET:'#5b6b8c',DEC:'#5b6b8c',FEU:'#5b6b8c',ARR:'#5b6b8c',BEC:'#5b6b8c'};
-const DEF={cap:8,pct:50,start:'07:30',pause:30,vBxl:25,vRoute:60,detour:1.3,hop:5,same:8,inclTrav:true,s1:4,s2:10,maxS:12,
+const DEF={calTol:10,cap:8,pct:50,start:'07:30',pause:30,vBxl:25,vRoute:60,detour:1.3,hop:5,same:8,inclTrav:true,s1:4,s2:10,maxS:12,
   rainMm:10,rainH:4,vigMm:4,vigH:2,frostMax:0,frostMin:-2,snowCm:1,gust:75,gustVig:55,heat:35,heatVig:30};
 const PLANYEAR=2027;
 const SOLO=1.5;// pénalité : saisonnier seul sur un chantier
@@ -357,10 +363,10 @@ const slug=s=>String(s).normalize('NFD').replace(/[^\w]+/g,'_').replace(/^_|_$/g
 let toastT;const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2800)};
 
 let BASEPASS=[];let D,P=new Map(),SITES=new Map(),BASEP=[],PEOPLE=[],ZONES=[],CLIENTS=[];
-const ST={chantiers:{},machines:{},besoins:{},conges:{},tournees:{},params:{},personnel:{},realisations:{},marche:{},intemperies:{},plans:{}};
+const ST={chantiers:{},machines:{},besoins:{},conges:{},tournees:{},params:{},personnel:{},realisations:{},marche:{},intemperies:{},plans:{},prestations:{},clients:{}};
 const COLLS=Object.keys(ST);
 let mode='local',db=null,dl=null;
-const S={tab:'planning',person:'__team',zone:'',week:null,mweek:null,editC:null,editM:null,editE:null};
+const S={view:'week',day:null,prMode:null,bulk:[],bulkPt:null,prEdit:null,mkYear:null,tab:'planning',person:'__team',zone:'',week:null,mweek:null,editC:null,editM:null,editE:null};
 const PR=()=>({...DEF,...(ST.params.general||{})});
 
 // ---------- persistance ----------
@@ -429,10 +435,28 @@ function siteLoc(pt){
   return{...base,key:'pt'+pt};
 }
 const ponctLoc=c=>{const g=geoCp(c.cp,c.zone);return c.geo&&isFinite(c.geo.lat)?{...g,lat:+c.geo.lat,lon:+c.geo.lon,exact:true,approx:false,key:'c'+c.id}:{...g,key:'c'+c.id}};
+// calage saisonnier : chaque prestation de l'an dernier fixe la fenêtre du passage le plus proche, à la même date cette année
+function alignSeason(arr,pt,act){
+  const prev=Object.values(ST.prestations).filter(x=>x.pt===pt&&x.act===act&&String(x.date||'').startsWith(String(PLANYEAR-1))).map(x=>x.date).sort();
+  if(!prev.length)return arr;
+  const tol=Math.max(0,+PR().calTol||10),used=new Set(),res=arr.slice(),y0=PLANYEAR+'-01-04',y1=PLANYEAR+'-12-31';
+  const mid=p=>add(p.f1,Math.round((P0(p.f2)-P0(p.f1))/864e5/2));
+  prev.forEach(dp=>{const d=iso(P0(String(PLANYEAR)+dp.slice(4)));let bi=-1,bd=1e15;
+    res.forEach((p,i)=>{if(p.hors||used.has(i))return;const dd=Math.abs(P0(mid(p))-P0(d));if(dd<bd){bd=dd;bi=i}});
+    if(bi<0)return;used.add(bi);let f1=add(d,-tol),f2=add(d,tol);if(f1<y0)f1=y0;if(f2>y1)f2=y1;res[bi]={...res[bi],f1,f2,cale:dp}});
+  return res;
+}
 // passages effectifs : classeur + fin d'année, corrigés par le suivi du marché (quantités, heures, postes ajoutés)
 function effPassages(){
   const out=[],byKey=new Map();
-  BASEPASS.forEach(p=>{if(p.year!==PLANYEAR){out.push(p);return}const k=p.pt+'|'+p.act;(byKey.get(k)||byKey.set(k,[]).get(k)).push(p)});
+  const cur=new Map();
+  BASEPASS.forEach(p=>{if(p.year!==PLANYEAR){const k=p.pt+'|'+p.act;(cur.get(k)||cur.set(k,[]).get(k)).push(p);return}const k=p.pt+'|'+p.act;(byKey.get(k)||byKey.set(k,[]).get(k)).push(p)});
+  // année en cours : les prestations déjà saisies réduisent les passages de fin d'année encore à faire
+  cur.forEach((l,k)=>{const[pt,act]=[+k.split('|')[0],k.split('|').slice(1).join('|')];const y=l[0].year;const st=SITES.get(pt)||{acts:{}};
+    const o=(ST.marche['pt-'+pt]||{}).postes?.[act]||{};const q=o.qtt!=null?+o.qtt:(st.acts[act]?+st.acts[act][0]:null);
+    const done=Object.values(ST.prestations).filter(x=>x.pt===pt&&x.act===act&&String(x.date||'').startsWith(String(y))).length;
+    l.sort((a,b)=>a.f1.localeCompare(b.f1));const keep=q==null?l.length-Math.min(done,l.length):Math.max(0,Math.min(l.length,q-done));
+    l.forEach((p,i)=>out.push(i<keep?p:{...p,hors:true,horsMotif:'Déjà réalisé ('+y+')'}))});
   const extra=(pt,act,i,q,ht,l)=>{const st=SITES.get(pt)||{};let a=PLANYEAR+'-04-01',b=PLANYEAR+'-10-31';
     if(l.length){a=l.reduce((m,p)=>p.f1<m?p.f1:m,'9');b=l.reduce((m,p)=>p.f2>m?p.f2:m,'0')}
     const j=i-l.length,m=q-l.length,span=(P0(b)-P0(a))/864e5,c=add(a,Math.round(span*(j+0.5)/m));
@@ -441,9 +465,10 @@ function effPassages(){
   byKey.forEach((l,k)=>{const[pt,act]=[+k.split('|')[0],k.split('|').slice(1).join('|')];const o=(ST.marche['pt-'+pt]||{}).postes?.[act];
     l.sort((a,b)=>a.f1.localeCompare(b.f1)||String(a.n).localeCompare(String(b.n)));
     const q=o&&o.qtt!=null?+o.qtt:l.length,ht=o&&o.ht!=null&&o.ht!==''?+o.ht:null;
-    l.forEach((p,i)=>out.push(i<q?(ht!=null?{...p,hTh:ht}:p):{...p,hors:true}));
-    for(let i=l.length;i<q;i++)out.push(extra(pt,act,i,q,ht!=null?ht:(l[0]?l[0].hTh:0),l))});
-  Object.values(ST.marche).forEach(m=>Object.entries(m.postes||{}).forEach(([act,o])=>{if(byKey.has(m.pt+'|'+act)||o.removed)return;for(let i=0;i<(+o.qtt||0);i++)out.push(extra(m.pt,act,i,+o.qtt,o.ht,[]))}));
+    const arr=l.map((p,i)=>i<q?(ht!=null?{...p,hTh:ht}:p):{...p,hors:true});
+    for(let i=l.length;i<q;i++)arr.push(extra(pt,act,i,q,ht!=null?ht:(l[0]?l[0].hTh:0),l));
+    alignSeason(arr,pt,act).forEach(p=>out.push(p))});
+  Object.values(ST.marche).forEach(m=>Object.entries(m.postes||{}).forEach(([act,o])=>{if(byKey.has(m.pt+'|'+act)||o.removed)return;const arr=[];for(let i=0;i<(+o.qtt||0);i++)arr.push(extra(m.pt,act,i,+o.qtt,o.ht,[]));alignSeason(arr,m.pt,act).forEach(p=>out.push(p))}));
   return out;
 }
 function km(a,b){const R=6371,t=Math.PI/180,dl=(b.lat-a.lat)*t,dn=(b.lon-a.lon)*t;const x=Math.sin(dl/2)**2+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
@@ -467,7 +492,7 @@ function congeRecord(name){const r=ST.conges[slug(name)];if(r&&r.periods)return 
 
 // ---------- moteur de planification ----------
 let CALC=null,CALCKEY='';
-function calcKey(){return JSON.stringify([ST.marche,ST.realisations,ST.intemperies,ST.chantiers,ST.besoins,ST.conges,ST.params.general||{},ST.personnel,Object.values(ST.machines).filter(m=>isNacelle(m)||m.removed).map(m=>m.id)])}
+function calcKey(){return JSON.stringify([Object.values(ST.prestations).map(x=>x.pt+'|'+x.act+'|'+x.date),ST.marche,ST.realisations,ST.intemperies,ST.chantiers,ST.besoins,ST.conges,ST.params.general||{},ST.personnel,Object.values(ST.machines).filter(m=>isNacelle(m)||m.removed).map(m=>m.id)])}
 const BXZ=new Set(['Bruxelles Sud + BW','Bruxelles Nord + Flandre','À définir','',undefined,null]);
 const zoneOk=(a,b)=>a===b||(BXZ.has(a)&&BXZ.has(b));
 // meilleure équipe de k : 1 fixe + saisonnier(s) de préférence, jamais uniquement des saisonniers si possible
@@ -518,7 +543,7 @@ function compute(){
   P.forEach(p=>{
     const s=SITES.get(p.pt)||{zone:p.zone,pt:p.pt};
     let W=(p.hTh||0)*PCT;
-    if(p.hors){res.set(p.n,{W:0,k:0,days:[],planned:0,status:'Hors marché'});return}
+    if(p.hors){res.set(p.n,{W:0,k:0,days:[],planned:0,status:p.horsMotif||'Hors marché'});return}
     const rl=ST.realisations['n'+p.n];
     if(rl){const team=(rl.team||[]).filter(n=>cal.has(n));const loc=siteLoc(p.pt);const hh=+rl.hours||0;
       if(team.length&&rl.date)team.forEach(n=>place(n,rl.date,loc,{k:'rec',n:p.n,h:hh/team.length,team,loc,done:!!rl.done}));
@@ -648,6 +673,7 @@ function fillPeople(){
 function renderEquipeTab(){
   const C=ensureCalc();
   const hrs=n=>{let w=0,d=0;(C.cal.get(n)||new Map()).forEach(c=>{if(c.work>0){w+=c.work;d++}});return[w,d]};
+  $('#eVirtWrap').hidden=!C.virt.length;
   $('#eVirt').innerHTML=C.virt.length?C.virt.map(v=>`<div class="card ch"><div class="hd"><div><h3>${esc(v.name)}</h3><div class="muted">${esc(v.zone)} · du ${dlab(v.d1)} au ${dlabY(v.d2)}</div></div><div style="text-align:right"><div class="num" style="font-size:22px;font-weight:600">${fh(v.h)}</div><div class="small muted">${v.days} jours de travail</div></div></div>
     <div class="bar" style="margin:10px 0 0"><button data-hire="${esc(v.name)}" class="pri">Ajouter à l’équipe…</button><button data-see="${esc(v.name)}" class="ghost">Voir son planning</button></div></div>`).join(''):'<div class="card muted">Aucun saisonnier supplémentaire nécessaire avec l’équipe et les règles actuelles.</div>';
   $('#eTbl').innerHTML=`<thead><tr><th>Nom</th><th>Contrat</th><th>Zone</th><th>Présence</th><th class="r">H planifiées</th><th class="r">Jours</th><th></th></tr></thead><tbody>${PEOPLE.slice().sort((a,b)=>(b.fixe-a.fixe)||a.name.localeCompare(b.name)).map(p=>{const[w,d]=hrs(p.name);return`<tr><td><b>${esc(p.name)}</b>${p.remarque?`<div class="muted small">${esc(p.remarque)}</div>`:''}</td><td><span class="pill ${p.fixe?'ok':'o'}">${esc(p.fixe?'Fixe · '+p.contrat:p.contrat)}</span></td><td class="small">${esc(p.zone||'')}</td><td class="small">${MOISL[(p.m1||1)-1]} → ${MOISL[(p.m2||12)-1]}</td><td class="r">${fh(w)}</td><td class="r">${d}</td><td>${p.fixe?'':`<button class="sm ghost" data-eed="${esc(p.name)}">Modifier</button><button class="sm ghost danger" data-erm="${esc(p.name)}">Supprimer</button>`}<button class="sm ghost" data-see="${esc(p.name)}">Planning</button></td></tr>`}).join('')}</tbody>`;
@@ -697,43 +723,105 @@ function mapSVG(t){
   const xy=t.stops.map((s,i)=>[sx(s.loc.lon)+(i%3)*2,sy(s.loc.lat)+(i%2)*2]);
   return`<div class="map" aria-hidden="true"><svg viewBox="0 0 300 110" preserveAspectRatio="none"><polyline points="${xy.map(p=>p.join(',')).join(' ')}" fill="none" stroke="#ff7a1a" stroke-width="2" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>${xy.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${i?5:7}" fill="${i?'#2f5a40':'#ff7a1a'}" vector-effect="non-scaling-stroke"/>`).join('')}</svg></div>`;
 }
+// saisonniers : affichés seulement s'ils sont présents ou ont du travail sur la période
+const visibleIn=(p,days)=>p.fixe||days.some(d=>tour(p.name,d))||(!p.virtual&&days.some(d=>inContract(p,d)));
+function setDay(d){S.day=d;S.week=mon(d)}
+const isWorkDay=d=>dow(d)<5&&!D.feries[d];
+function stepPeriod(k){
+  if(S.view==='day'){let d=S.day;do{d=add(d,k)}while(dow(d)>4);setDay(d)}
+  else if(S.view==='month'){const[y,m]=S.day.split('-').map(Number);const n=new Date(Date.UTC(y,m-1+k,1));setDay(iso(n))}
+  else setDay(add(S.week,7*k));
+}
+function periodLabel(){if(S.view==='day')return dayTitle(S.day);if(S.view==='month'){const[y,m]=S.day.split('-').map(Number);return MOISL[m-1]+' '+y}return wLabel(S.week)}
+function monthDays(){const[y,m]=S.day.split('-').map(Number);const a=`${y}-${String(m).padStart(2,'0')}-01`,b=iso(new Date(Date.UTC(y,m,0)));return allDays(a,b)}
+function dayCard(p,d,withName){
+  const C=ensureCalc(),x=dayInfo(p.name,d),t=x.tour,P_=`data-p="${esc(p.name)}"`;
+  const title=withName?`<b>${esc(p.name)}</b><span class="muted small">${esc(p.zone||'')}${p.fixe?'':' · '+esc(p.contrat||'')}</span>`:`<b>${JOURS[dow(d)]} ${dlab(d)}</b>`;
+  const head=`<header>${title}<button class="sm ghost" ${P_} data-abs="${d}" title="Poser ou retirer une absence ce jour">${x.conge?'Retirer l’absence':'Poser une absence'}</button><span class="wxh">${wxChip(p.zone,d)}</span></header>`;
+  if(x.conge)return`<div class="day">${head}<div class="items"><div class="it conge">Absent (congé)</div>${t?'<div class="empty" style="color:var(--warn)">Un chantier ponctuel est pourtant prévu ce jour.</div>':''}</div></div>`;
+  if(x.ferie)return`<div class="day">${head}<div class="items"><div class="it conge">Férié · ${esc(x.ferie)}</div></div></div>`;
+  if(isIntem(p.zone,d)&&!t)return`<div class="day">${head}<div class="items"><div class="it conge">Chômage intempéries</div></div></div>`;
+  if(!t)return`<div class="day">${head}<div class="items"><div class="empty">${x.out?'Hors contrat (présent du mois '+esc(p.m1)+' au mois '+esc(p.m2)+')':'Disponible · '+fh(C.CAP)}</div></div></div>`;
+  const wpc=Math.min(100,t.work/C.CAP*100),tpc=Math.min(100-wpc,t.travel/C.CAP*100);
+  return`<div class="day">${head}
+  <div class="meter" title="Travail ${fh(t.work)}, trajets ${fm(t.travel)}"><i style="width:${wpc}%"></i><i class="t" style="width:${tpc}%"></i></div>
+  <div class="sum ${t.over?'over':''}">${fh(t.work)} de travail · ${fm(t.travel)} de trajet · fin ${clock(t.end)}${t.over?' · dépasse '+fh(C.CAP):''}</div>
+  ${t.stops.length>1?`<select class="first" ${P_} data-first="${d}" aria-label="Premier chantier de la journée">${t.stops.map(s=>{const f=itemInfo(s.items[0],p.name);return`<option value="${esc(s.key)}" ${s.key===t.firstKey?'selected':''}>Commencer par : ${esc(f.client)}${f.site&&f.site!==f.client?' · '+esc(f.site).slice(0,24):''}</option>`}).join('')}</select>`:''}
+  ${mapSVG(t)}
+  <div class="acts2" style="margin:-2px 8px 8px"><a class="btnlink" href="${esc(routeUrl(t,p.name))}" target="_blank" rel="noopener">Itinéraire Google Maps</a><button class="ghost" ${P_} data-cpr="${d}">Copier le lien</button></div>
+  <div class="items">${t.stops.map(s=>stopHTML(s,p.name,d)).join('')}
+  ${C.CAP-t.work-(C.pr.inclTrav?t.travel:0)>0.25?`<div class="empty">▸ ${fh(C.CAP-t.work-(C.pr.inclTrav?t.travel:0))} encore libres</div>`:''}</div></div>`;
+}
+function bindCards(root){
+  root.querySelectorAll('[data-first]').forEach(s=>s.onchange=()=>{const n=s.dataset.p,k=slug(n)+'_'+s.dataset.first;put('tournees',k,{person:n,date:s.dataset.first,first:s.value})});
+  root.querySelectorAll('[data-abs]').forEach(b=>b.onclick=()=>toggleAbs(b.dataset.p,b.dataset.abs));
+  root.querySelectorAll('[data-real]').forEach(b=>b.onclick=()=>openReal(b.dataset.real,b.dataset.rd));
+  root.querySelectorAll('[data-plan]').forEach(b=>b.onclick=()=>openPlans(+b.dataset.plan));
+  root.querySelectorAll('[data-cpr]').forEach(b=>b.onclick=async()=>{const t=tour(b.dataset.p,b.dataset.cpr);try{await navigator.clipboard.writeText(routeUrl(t,b.dataset.p));toast('Lien d’itinéraire copié : collez-le dans WhatsApp')}catch(e){toast('Copie refusée par le navigateur')}});
+  root.querySelectorAll('[data-goday]').forEach(el=>el.onclick=()=>{if(el.dataset.p)S.person=el.dataset.p;S.view='day';setDay(el.dataset.goday);renderNow()});
+}
 function renderPlanning(){
-  const m=S.week;$('#wLbl').textContent=wLabel(m);$('#wDate').value=m;
+  if(!S.day)S.day=S.week;S.week=mon(S.day);
+  $('#wLbl').textContent=periodLabel();$('#wDate').value=S.day;$('#vSel').value=S.view;
   $('#pSel').value=S.person;$('#zSel').value=S.zone;$('#zSel').hidden=S.person!=='__team';
-  if(S.person==='__team')return renderTeam(m);
-  const C=ensureCalc(),p=person(S.person)||{name:S.person};
-  const all=weekDays(m,true),info=all.map(d=>dayInfo(p.name,d));
-  const days=all.filter((d,i)=>i<5||info[i].tour);
+  if(S.view==='day')return S.person==='__team'?renderTeamDay():renderPersonDay();
+  if(S.view==='month')return S.person==='__team'?renderTeamMonth():renderPersonMonth();
+  if(S.person==='__team')return renderTeam(S.week);
+  renderPersonWeek();
+}
+function personKpis(p,days){
+  const C=ensureCalc(),info=days.map(d=>dayInfo(p.name,d));
   const work=info.reduce((a,x)=>a+(x.tour?x.tour.work:0),0),trv=info.reduce((a,x)=>a+(x.tour?x.tour.travel:0),0),dist=info.reduce((a,x)=>a+(x.tour?x.tour.dist:0),0);
-  const pres=all.slice(0,5).filter((d,i)=>!info[i].conge&&!info[i].ferie&&!info[i].out).length;
-  const pc=congeRecord(p.name),modif=!!(ST.conges[slug(p.name)]&&ST.conges[slug(p.name)].periods);
-  $('#pHead').innerHTML=`<div class="kpis">
-   <div class="kpi"><div class="num">${esc(p.name)}</div><span>${esc(p.contrat||'')} · ${esc(p.zone||'')}${p.remarque?' · '+esc(p.remarque):''}</span></div>
+  const pres=days.filter((d,i)=>isWorkDay(d)&&!info[i].conge&&!info[i].out&&!isIntem(p.zone,d)).length;
+  const ab=days.filter((d,i)=>isWorkDay(d)&&info[i].conge).length;
+  return`<div class="kpis"><div class="kpi"><div class="num">${esc(p.name)}</div><span>${esc(p.contrat||'')} · ${esc(p.zone||'')}${p.remarque?' · '+esc(p.remarque):''}</span></div>
    <div class="kpi"><div class="num">${fh(work)}</div><span>de travail / ${fh(pres*C.CAP)} disponibles</span></div>
    <div class="kpi"><div class="num">${fm(trv)}</div><span>de trajet entre chantiers · ${Math.round(dist)} km</span></div>
-   <div class="kpi"><div class="num">${info.reduce((a,x)=>a+(x.tour?x.tour.stops.length:0),0)}</div><span>arrêts dans la semaine</span></div>
-   <div class="kpi"><div class="num">${pc.periods.length}</div><span>période${pc.periods.length>1?'s':''} d’absence ${modif?'(saisies)':'(classeur)'}</span></div></div>
-   <p class="small muted" style="margin:-6px 0 12px">Chaque journée est une tournée : elle commence au premier chantier choisi (par défaut le chantier en équipe, sinon le plus excentré), puis enchaîne le chantier le plus proche. Départ ${esc(C.pr.start)}, trajets estimés de commune à commune.</p>`;
-  $('#pBody').innerHTML=`<div class="week" style="--n:${days.length}">${days.map(d=>{
-    const x=info[all.indexOf(d)],t=x.tour;
-    const head=`<header><b>${JOURS[dow(d)]} ${dlab(d)}</b><button class="sm ghost" data-abs="${d}" title="Poser ou retirer une absence ce jour">${x.conge?'Retirer l’absence':'Poser une absence'}</button><span class="wxh">${wxChip(p.zone,d)}</span></header>`;
-    if(x.conge)return`<div class="day">${head}<div class="items"><div class="it conge">Absent (congé)</div>${t?'<div class="empty" style="color:var(--warn)">Un chantier ponctuel est pourtant prévu ce jour.</div>':''}</div></div>`;
-    if(x.ferie)return`<div class="day">${head}<div class="items"><div class="it conge">Férié · ${esc(x.ferie)}</div></div></div>`;
-    if(!t)return`<div class="day">${head}<div class="items"><div class="empty">${x.out?'Hors contrat (présent du mois '+esc(p.m1)+' au mois '+esc(p.m2)+')':'Disponible · '+fh(C.CAP)}</div></div></div>`;
-    const wpc=Math.min(100,t.work/C.CAP*100),tpc=Math.min(100-wpc,t.travel/C.CAP*100);
-    return`<div class="day">${head}
-    <div class="meter" title="Travail ${fh(t.work)}, trajets ${fm(t.travel)}"><i style="width:${wpc}%"></i><i class="t" style="width:${tpc}%"></i></div>
-    <div class="sum ${t.over?'over':''}">${fh(t.work)} de travail · ${fm(t.travel)} de trajet · fin ${clock(t.end)}${t.over?' · dépasse '+fh(C.CAP):''}</div>
-    ${t.stops.length>1?`<select class="first" data-first="${d}" aria-label="Premier chantier de la journée">${t.stops.map(s=>{const f=itemInfo(s.items[0],p.name);return`<option value="${esc(s.key)}" ${s.key===t.firstKey?'selected':''}>Commencer par : ${esc(f.client)}${f.site&&f.site!==f.client?' · '+esc(f.site).slice(0,24):''}</option>`}).join('')}</select>`:''}
-    ${mapSVG(t)}
-    <div class="acts2" style="margin:-2px 8px 8px"><a class="btnlink" href="${esc(routeUrl(t,p.name))}" target="_blank" rel="noopener">Itinéraire Google Maps</a><button class="ghost" data-cpr="${d}">Copier le lien</button></div>
-    <div class="items">${t.stops.map(s=>stopHTML(s,p.name,d)).join('')}
-    ${C.CAP-t.work-(C.pr.inclTrav?t.travel:0)>0.25?`<div class="empty">▸ ${fh(C.CAP-t.work-(C.pr.inclTrav?t.travel:0))} encore libres</div>`:''}</div></div>`}).join('')}</div>`;
-  $$('[data-first]').forEach(s=>s.onchange=()=>{const k=slug(p.name)+'_'+s.dataset.first;put('tournees',k,{person:p.name,date:s.dataset.first,first:s.value})});
-  $$('[data-abs]').forEach(b=>b.onclick=()=>toggleAbs(p.name,b.dataset.abs));
-  $$('#pBody [data-real]').forEach(b=>b.onclick=()=>openReal(b.dataset.real,b.dataset.rd));
-  $$('#pBody [data-plan]').forEach(b=>b.onclick=()=>openPlans(+b.dataset.plan));
-  $$('[data-cpr]').forEach(b=>b.onclick=async()=>{const t=tour(p.name,b.dataset.cpr);try{await navigator.clipboard.writeText(routeUrl(t,p.name));toast('Lien d’itinéraire copié : collez-le dans WhatsApp')}catch(e){toast('Copie refusée par le navigateur')}});
+   <div class="kpi"><div class="num">${info.reduce((a,x)=>a+(x.tour?x.tour.stops.length:0),0)}</div><span>arrêts</span></div>
+   <div class="kpi"><div class="num">${ab}</div><span>jour${ab>1?'s':''} d’absence</span></div></div>`;
+}
+function renderPersonWeek(){
+  const C=ensureCalc(),p=person(S.person)||{name:S.person};
+  const all=weekDays(S.week,true),days=all.filter((d,i)=>i<5||tour(p.name,d));
+  $('#pHead').innerHTML=personKpis(p,all)+`<p class="small muted" style="margin:-6px 0 12px">Chaque journée est une tournée : elle commence au premier chantier choisi (par défaut le chantier en équipe, sinon le plus excentré), puis enchaîne le chantier le plus proche. Départ ${esc(C.pr.start)}.</p>`;
+  $('#pBody').innerHTML=`<div class="week" style="--n:${days.length}">${days.map(d=>dayCard(p,d,false)).join('')}</div>`;bindCards($('#pBody'));
+}
+function renderPersonDay(){
+  const p=person(S.person)||{name:S.person};
+  $('#pHead').innerHTML=personKpis(p,[S.day]);
+  $('#pBody').innerHTML=`<div style="max-width:760px">${dayCard(p,S.day,false)}</div>`;bindCards($('#pBody'));
+}
+function renderTeamDay(){
+  const C=ensureCalc(),d=S.day,ppl=ALLP().filter(p=>(!S.zone||p.zone===S.zone)&&visibleIn(p,[d]));
+  const work=ppl.filter(p=>tour(p.name,d)),abs=ppl.filter(p=>C.cg.get(p.name)?.has(d)),free=ppl.filter(p=>!tour(p.name,d)&&!C.cg.get(p.name)?.has(d)&&inContract(p,d));
+  const W=work.reduce((a,p)=>a+tour(p.name,d).work,0),T=work.reduce((a,p)=>a+tour(p.name,d).travel,0);
+  $('#pHead').innerHTML=`<div class="kpis"><div class="kpi"><div class="num">${work.length}</div><span>personnes au travail</span></div><div class="kpi"><div class="num">${fh(W)}</div><span>de travail planifié</span></div><div class="kpi"><div class="num">${fh(T)}</div><span>de trajets</span></div><div class="kpi"><div class="num">${abs.length}</div><span>absents</span></div></div>
+  ${D.feries[d]?`<div class="warnbox" style="margin-bottom:12px">Jour férié · ${esc(D.feries[d])}</div>`:''}`;
+  $('#pBody').innerHTML=`<div class="week" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">${work.map(p=>dayCard(p,d,true)).join('')}</div>
+   ${abs.length?`<p><b>Absents :</b> ${abs.map(p=>`<button class="sm ghost" data-goday="${d}" data-p="${esc(p.name)}">${esc(p.name)}</button>`).join(' ')}</p>`:''}
+   ${free.length?`<p><b>Sans chantier :</b> ${free.map(p=>`<button class="sm ghost" data-goday="${d}" data-p="${esc(p.name)}">${esc(p.name)}</button>`).join(' ')}</p>`:''}
+   ${!work.length?'<div class="card muted">Aucun chantier planifié ce jour.</div>':''}`;
+  bindCards($('#pBody'));
+}
+function cellState(p,d){const C=ensureCalc();if(C.cg.get(p.name)?.has(d))return'cg';if(D.feries[d])return'fe';if(isIntem(p.zone,d))return'in';return''}
+function renderPersonMonth(){
+  const C=ensureCalc(),p=person(S.person)||{name:S.person},md=monthDays(),first=md[0],last=md.at(-1);
+  const we=md.some(d=>dow(d)>4&&tour(p.name,d));const cols=we?7:5;
+  const weeks=[];for(let m=mon(first);m<=last;m=add(m,7))weeks.push(m);
+  $('#pHead').innerHTML=personKpis(p,md)+'<p class="small muted" style="margin:-6px 0 12px">Cliquez sur un jour pour voir la tournée.</p>';
+  $('#pBody').innerHTML=`<div class="scroll"><table class="cal"><thead><tr>${JOURS.slice(0,cols).map(j=>`<th>${j}</th>`).join('')}</tr></thead><tbody>${weeks.map(w=>`<tr>${[...Array(cols).keys()].map(i=>{const d=add(w,i);if(d<first||d>last)return'<td class="out"></td>';
+    const t=tour(p.name,d),st=cellState(p,d);const lab=st==='cg'?'Absent':st==='fe'?'Férié':st==='in'?'Intempéries':'';
+    return`<td class="${st?'cg':''} ${t?'has':''}" data-goday="${d}" data-p="${esc(p.name)}"><div class="dn">${+d.slice(8)}</div>${lab?`<div class="small muted">${lab}</div>`:''}${t?`<div class="h">${fh(t.work)}</div>${t.stops.slice(0,3).map(s=>`<div class="small">${clock(s.arr)} ${esc((itemInfo(s.items[0],p.name).client||'').slice(0,20))}</div>`).join('')}${t.stops.length>3?`<div class="small muted">+${t.stops.length-3}</div>`:''}`:(!lab&&isWorkDay(d)&&inContract(p,d)?'<div class="small muted">Libre</div>':'')}</td>`}).join('')}</tr>`).join('')}</tbody></table></div>`;
+  bindCards($('#pBody'));
+}
+function renderTeamMonth(){
+  const C=ensureCalc(),md=monthDays().filter(d=>dow(d)<5),ppl=ALLP().filter(p=>(!S.zone||p.zone===S.zone)&&visibleIn(p,md));
+  let W=0;ppl.forEach(p=>md.forEach(d=>{const t=tour(p.name,d);if(t)W+=t.work}));
+  $('#pHead').innerHTML=`<div class="kpis"><div class="kpi"><div class="num">${fh(W)}</div><span>de travail planifié sur le mois</span></div><div class="kpi"><div class="num">${ppl.length}</div><span>personnes</span></div></div><p class="small muted" style="margin:-6px 0 10px">Heures de travail par jour. A = absent, F = férié, I = intempéries. Cliquez sur une case pour ouvrir la tournée.</p>`;
+  $('#pBody').innerHTML=`<div class="scroll"><table class="team mth"><thead><tr><th>Ouvrier</th>${md.map(d=>`<th class="r">${JOURS[dow(d)].slice(0,2)}<br>${+d.slice(8)}</th>`).join('')}<th class="r">Total</th></tr></thead><tbody>${ppl.map(p=>{let tot=0;return`<tr><td class="name">${esc(p.name)}<div class="muted small" style="font-weight:400">${esc(p.zone||'')}</div></td>${md.map(d=>{const st=cellState(p,d);if(st)return`<td class="cell cg" data-goday="${d}" data-p="${esc(p.name)}">${st==='cg'?'A':st==='fe'?'F':'I'}</td>`;
+    const t=tour(p.name,d);if(!t)return`<td class="cell ${inContract(p,d)?'':'muted'}" data-goday="${d}" data-p="${esc(p.name)}">${inContract(p,d)?'':'—'}</td>`;tot+=t.work;const h=t.work+(C.pr.inclTrav?t.travel:0),l=h<=C.CAP*0.6?1:h<=C.CAP+0.05?2:3;
+    return`<td class="cell l${l} r" data-goday="${d}" data-p="${esc(p.name)}" title="${esc(t.stops.map(s=>clock(s.arr)+' '+(itemInfo(s.items[0],p.name).client||'')).join('\n'))}">${String(r2(t.work)).replace('.',',')}</td>`}).join('')}<td class="r num" style="font-size:17px">${fh(tot)}</td></tr>`}).join('')}</tbody></table></div>`;
+  bindCards($('#pBody'));
 }
 function toggleAbs(name,d){
   const r=congeRecord(name);let per=r.periods.map(x=>({...x}));
@@ -745,7 +833,7 @@ function toggleAbs(name,d){
 }
 function teamRows(m){
   const days=weekDays(m,false);
-  return ALLP().filter(p=>!S.zone||p.zone===S.zone).map(p=>({p,cells:days.map(d=>({d,...dayInfo(p.name,d)}))}));
+  return ALLP().filter(p=>(!S.zone||p.zone===S.zone)&&visibleIn(p,days)).map(p=>({p,cells:days.map(d=>({d,...dayInfo(p.name,d)}))}));
 }
 function renderTeam(m){
   const C=ensureCalc(),days=weekDays(m,false),rows=teamRows(m);
@@ -770,7 +858,7 @@ function renderTeam(m){
     return`<td class="cell l${l}" data-p="${esc(r.p.name)}"><div class="h">${t?fh(t.work):'Libre'}</div>${t&&t.travel?`<div class="muted">+ ${fm(t.travel)} trajet · ${t.stops.length} arrêt${t.stops.length>1?'s':''}</div>`:''}${lab.slice(0,3).map(x=>`<div>${esc(x)}</div>`).join('')}${lab.length>3?`<div class="muted">+${lab.length-3}</div>`:''}</td>`}).join('')}
     <td class="r num" style="font-size:18px">${fh(r.cells.reduce((a,c)=>a+W(c),0))}</td></tr>`).join('')}</tbody></table></div>
   <p class="small muted">★ = chantier ponctuel. Vert clair = moins de 60 % de la journée, vert = journée remplie, rouge = au-delà de ${C.CAP} h (travail${C.pr.inclTrav?' + trajets':''}).</p>`;
-  $$('.team td.cell').forEach(td=>td.onclick=()=>{S.person=td.dataset.p;render()});
+  $$('.team td.cell').forEach(td=>td.onclick=()=>{S.person=td.dataset.p;renderNow()});
 }
 
 // ---------- règles ----------
@@ -787,6 +875,7 @@ function openRules(){
   <div class="two"><label>Saison des saisonniers : du mois<input type="number" name="s1" min="1" max="12" value="${esc(p.s1)}"></label><label>au mois<input type="number" name="s2" min="1" max="12" value="${esc(p.s2)}"></label></div>
   <label>Saisonniers à recruter au maximum par zone<input type="number" name="maxS" min="0" max="40" value="${esc(p.maxS)}"></label>
   <label>Trajet entre deux sites du même code postal (min)<input type="number" name="same" min="0" max="40" value="${esc(p.same)}"></label>
+  <label>Calage sur l’an dernier : tolérance autour de la date de la prestation (jours)<input type="number" name="calTol" min="0" max="60" value="${esc(p.calTol)}"></label>
   <h3 style="margin-top:6px">Seuils d’alerte intempéries (heures de travail)</h3>
   <div class="two"><label>Alerte : pluie ≥ (mm)<input type="number" name="rainMm" step="0.5" value="${esc(p.rainMm)}"></label><label>Alerte : heures de pluie ≥<input type="number" name="rainH" value="${esc(p.rainH)}"></label></div>
   <div class="two"><label>Vigilance : pluie ≥ (mm)<input type="number" name="vigMm" step="0.5" value="${esc(p.vigMm)}"></label><label>Vigilance : heures de pluie ≥<input type="number" name="vigH" value="${esc(p.vigH)}"></label></div>
@@ -799,7 +888,7 @@ function openRules(){
   <div class="card small" style="background:var(--bg)"><b>Composition des équipes :</b> 1 homme si le passage tient dans la journée ; binôme s’il dépasse ${esc(p.cap)} h (réparti sur plusieurs jours si besoin) ; équipe de 3 dès qu’une nacelle est nécessaire. Un binôme associe de préférence un homme fixe et un saisonnier ; deux fixes seulement s’il n’y a pas de saisonnier disponible, jamais deux saisonniers si un fixe peut venir. Quand les fixes ne suffisent pas, un saisonnier à recruter est ajouté (pendant la saison). La taille peut être imposée site par site (Interroger › Vue sites).<br><b>Ordre de priorité :</b> chaque équipe comprend au moins un ouvrier qui connaît le chantier (sinon le passage est décalé, et signalé en dernier recours) ; ensuite jardiniers attitrés au site, puis même zone, puis autre zone, puis renforts à engager. Les chantiers proches sont regroupés sur la même journée.<br><b>Localisation :</b> chaque site est placé au centre de sa commune (code postal) ; corrigez le code postal d’un site dans sa fiche si l’adresse du classeur est celle du siège.</div>
   <div class="bar" style="margin:0"><button class="pri" type="submit">Enregistrer et recalculer</button><button type="button" class="ghost" id="rReset">Valeurs par défaut</button></div></form>`;
   $('#ov').classList.add('on');$('#ovX').onclick=closeOv;
-  $('#rForm').onsubmit=e=>{e.preventDefault();const f=e.target;const o={};['cap','pct','pause','vBxl','vRoute','detour','hop','same','s1','s2','maxS','rainMm','rainH','vigMm','vigH','frostMax','frostMin','gust','gustVig','snowCm','heat'].forEach(k=>o[k]=+f[k].value);o.start=f.start.value||'07:30';o.inclTrav=f.inclTrav.checked;put('params','general',o);closeOv();toast('Règles enregistrées, planning recalculé')};
+  $('#rForm').onsubmit=e=>{e.preventDefault();const f=e.target;const o={};['calTol','cap','pct','pause','vBxl','vRoute','detour','hop','same','s1','s2','maxS','rainMm','rainH','vigMm','vigH','frostMax','frostMin','gust','gustVig','snowCm','heat'].forEach(k=>o[k]=+f[k].value);o.start=f.start.value||'07:30';o.inclTrav=f.inclTrav.checked;put('params','general',o);closeOv();toast('Règles enregistrées, planning recalculé')};
   $('#geoAll').onclick=e=>geocodeAll(e.target);$('#geoExp').onclick=exportGeo;$('#geoImp').onchange=e=>{const f=e.target.files[0];if(f)importGeo(f)};
   $('#rReset').onclick=()=>{put('params','general',{...DEF});closeOv();toast('Valeurs par défaut rétablies')};
 }
@@ -865,48 +954,218 @@ const dayTitleS=d=>`${JOURS[dow(d)].slice(0,3)}. ${dlabY(d)}`;
 $('#wxForm').addEventListener('submit',e=>{e.preventDefault();const f=e.target;if(!f.d.value)return;declareIntem(f.zone.value,f.d.value,f.motif.value.trim()||'Intempéries');f.motif.value=''});
 
 // ---------- suivi du marché ----------
-function marcheRows(pt){
-  const s=SITES.get(pt)||{acts:{}},m=ST.marche['pt-'+pt]||{postes:{}},C=ensureCalc();
-  const acts=[...new Set(Object.keys(s.acts).concat(Object.keys(m.postes||{})).concat([...P.values()].filter(p=>p.pt===pt&&p.year===PLANYEAR).map(p=>p.act)))];
-  return acts.filter(a=>!(m.postes?.[a]?.removed)).map(a=>{
-    const ps=[...P.values()].filter(p=>p.pt===pt&&p.act===a&&p.year===PLANYEAR),inM=ps.filter(p=>!p.hors);
-    const o=m.postes?.[a]||{};const qtt=o.qtt!=null?+o.qtt:(s.acts[a]?+s.acts[a][0]:inM.length);const ht=o.ht!=null&&o.ht!==''?+o.ht:(s.acts[a]?+s.acts[a][1]:(inM[0]?inM[0].hTh:0));
-    const done=inM.filter(p=>C.res.get(p.n)?.status==='Réalisé'),enc=inM.filter(p=>(C.res.get(p.n)?.status||'').startsWith('En cours'));
-    const hReal=inM.reduce((x,p)=>x+(ST.realisations['n'+p.n]?+ST.realisations['n'+p.n].hours||0:0),0);
-    return{act:a,qtt,ht,done:done.length,enc:enc.length,rest:Math.max(0,qtt-done.length),hReal,ps:inM,mod:o.qtt!=null||(o.ht!=null&&o.ht!==''),ajout:!s.acts[a]}});
+const prestaOf=(pt,year)=>Object.values(ST.prestations).filter(x=>x.pt===pt&&(!year||String(x.date||'').slice(0,4)===String(year))).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+function posteDef(pt,a){const s=SITES.get(pt)||{acts:{}},o=(ST.marche['pt-'+pt]||{}).postes?.[a]||{};
+  const inM=[...P.values()].filter(p=>p.pt===pt&&p.act===a&&p.year===PLANYEAR&&!p.hors);
+  return{qtt:o.qtt!=null?+o.qtt:(s.acts[a]?+s.acts[a][0]:inM.length),ht:o.ht!=null&&o.ht!==''?+o.ht:(s.acts[a]?+s.acts[a][1]:(inM[0]?inM[0].hTh:0)),o,inM}}
+function marcheActs(pt){const s=SITES.get(pt)||{acts:{}},m=ST.marche['pt-'+pt]||{postes:{}};
+  return[...new Set(Object.keys(s.acts).concat(Object.keys(m.postes||{})).concat([...P.values()].filter(p=>p.pt===pt&&p.year===PLANYEAR).map(p=>p.act)).concat(Object.values(ST.prestations).filter(x=>x.pt===pt).map(x=>x.act)))].filter(a=>!(m.postes?.[a]?.removed))}
+function marcheRows(pt,year){
+  const s=SITES.get(pt)||{acts:{}},C=ensureCalc(),pct=(+PR().pct||50)/100;
+  return marcheActs(pt).map(a=>{const{qtt,ht,o,inM}=posteDef(pt,a);
+    const pr=prestaOf(pt,year).filter(x=>x.act===a);
+    const ps=year===PLANYEAR?inM:[...P.values()].filter(p=>p.pt===pt&&p.act===a&&p.year===year);
+    const done=ps.filter(p=>C.res.get(p.n)?.status==='Réalisé'),enc=ps.filter(p=>(C.res.get(p.n)?.status||'').startsWith('En cours'));
+    const hRealP=ps.reduce((x,p)=>x+(ST.realisations['n'+p.n]?+ST.realisations['n'+p.n].hours||0:0),0);
+    const nDone=done.length+pr.length,hReal=hRealP+pr.reduce((x,e)=>x+(+e.hh||0),0);
+    return{act:a,qtt,ht,done:nDone,enc:enc.length,rest:Math.max(0,qtt-nDone),hReal,hTheo:nDone*ht,hVise:nDone*ht*pct,ps,pr,mod:o.qtt!=null||(o.ht!=null&&o.ht!==''),ajout:!s.acts[a]}});
+}
+const ecart=(real,theo)=>{if(!theo)return'<span class="muted">—</span>';const d=real-theo,pc=Math.round(d/theo*100);return`<span style="font-weight:600;color:${d>0.01?'var(--warn)':'var(--forest2)'}">${d>0?'+':''}${fh(d)} (${pc>0?'+':''}${pc} %)</span>`};
+// ---------- saisie groupée des prestations ----------
+async function putMany(coll,docs){
+  docs.forEach(d=>{ST[coll][d.id]=d});render();
+  if(mode==='db'){let ko=0;for(const d of docs){try{await db.collection(coll).doc(d.id).set(d)}catch(e){ko++}}if(ko)toast(ko+' ligne(s) non enregistrée(s) en ligne, réessayez')}
+  else lsSave();
+}
+const ALLACTS=()=>[...new Set(Object.values(D.codes).concat(['Sarclage','Débroussaillage','Toiture végétale','Taille arbre','Plantation','Abattage']))];
+const numFr=v=>+String(v??'').replace(',','.').trim()||0;
+function parseDateFr(t,Y){t=String(t||'').trim();let m;
+  if(m=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  if(m=t.match(/^(\d{1,2})[\/.\-](\d{1,2})(?:[\/.\-](\d{2,4}))?/)){let y=m[3]?(m[3].length===2?'20'+m[3]:m[3]):String(Y);return`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`}
+  if(/^\d{5}$/.test(t)){const d=new Date(Date.UTC(1899,11,30)+(+t)*864e5);return iso(d)}// date Excel en nombre
+  return''}
+function matchAct(t,pt){const s=String(t||'').trim();if(!s)return'';const all=marcheActs(pt).concat(ALLACTS());const n=x=>x.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  return all.find(a=>n(a)===n(s))||all.find(a=>n(a).startsWith(n(s))||n(s).startsWith(n(a)))||s}
+function bulkCheck(r){const e=[];if(!SITES.get(+r.pt))e.push('site');if(!String(r.act||'').trim())e.push('poste');if(!/^\d{4}-\d{2}-\d{2}$/.test(r.date||''))e.push('date');if(!(Math.round(numFr(r.n))>=1))e.push('ouvriers');if(!(numFr(r.duree)>0))e.push('durée');return e}
+function bulkCalcCells(r){const n=Math.round(numFr(r.n)),du=numFr(r.duree),pt=+r.pt;const ht=SITES.get(pt)&&r.act?posteDef(pt,String(r.act).trim()).ht:0;
+  return{hh:n&&du?fh(n*du):'—',th:ht?fh(ht):'—',ec:n&&du&&ht?ecart(n*du,ht):'—'}}
+function renderBulk(pt,Y){
+  const box=$('#prBulk');if(!box)return;S.bulk=S.bulk||[];
+  if(!S.bulk.length)for(let i=0;i<3;i++)S.bulk.push({pt,act:'',date:'',n:2,duree:'',note:''});
+  const siteOpts=D.sites.filter(s=>marcheActs(s.pt).length).sort((a,b)=>a.client.localeCompare(b.client,'fr')||String(a.site).localeCompare(String(b.site),'fr'));
+  const sOpt=v=>siteOpts.map(s=>`<option value="${s.pt}" ${+v===s.pt?'selected':''}>${esc(s.client)}${s.site&&s.site!==s.client?' · '+esc(s.site):''}</option>`).join('');
+  const ok=S.bulk.filter(r=>!bulkCheck(r).length).length;
+  box.innerHTML=`<p class="small muted" style="margin:0 0 8px">Une ligne par prestation. Les lignes incomplètes sont signalées en rouge et ne sont pas enregistrées. Astuce : « Copier » reprend la ligne au-dessous pour enchaîner les dates.</p>
+  <div class="bar" style="margin-bottom:8px"><button type="button" id="bkPre">Pré-remplir les passages ${Y} déjà échus de ce site</button><button type="button" class="ghost" id="bkPasteT">Coller depuis Excel</button></div>
+  <div id="bkPaste" hidden class="f" style="margin-bottom:10px"><label>Collez ici des lignes copiées depuis Excel : Date · Poste · Ouvriers · Durée (h) · Remarque (dans cet ordre, une prestation par ligne)<textarea id="bkTxt" rows="5" placeholder="15/10/2026	Tonte	2	3,5	haies hautes"></textarea></label>
+   <div class="bar" style="margin:0"><button type="button" id="bkImp">Ajouter ces lignes au tableau</button><span class="small muted">Les lignes collées sont affectées au site sélectionné à gauche.</span></div></div>
+  <datalist id="dlActs">${[...new Set(marcheActs(pt).concat(ALLACTS()))].map(a=>`<option value="${esc(a)}">`).join('')}</datalist>
+  <div class="scroll"><table class="bulk"><thead><tr><th>#</th><th>Site</th><th>Poste</th><th>Date</th><th class="r">Ouvriers</th><th class="r">Durée sur site (h)</th><th class="r">Temps réalisé</th><th class="r">Théorique</th><th class="r">Écart</th><th>Remarque</th><th></th></tr></thead><tbody>${S.bulk.map((r,i)=>{const e=bulkCheck(r),c=bulkCalcCells(r),touched=r.act||r.date||r.duree;
+    return`<tr data-i="${i}" class="${touched&&e.length?'bad':''}"><td class="muted small">${i+1}</td>
+    <td><select data-k="pt" aria-label="Site ligne ${i+1}" style="min-width:200px">${sOpt(r.pt)}</select></td>
+    <td><input data-k="act" list="dlActs" value="${esc(r.act)}" aria-label="Poste ligne ${i+1}" style="min-width:130px" class="${touched&&e.includes('poste')?'err':''}"></td>
+    <td><input type="date" data-k="date" value="${esc(r.date)}" aria-label="Date ligne ${i+1}" class="${touched&&e.includes('date')?'err':''}"></td>
+    <td class="r"><input type="number" min="1" step="1" data-k="n" value="${esc(r.n)}" aria-label="Ouvriers ligne ${i+1}" style="width:70px;text-align:right" class="${touched&&e.includes('ouvriers')?'err':''}"></td>
+    <td class="r"><input inputmode="decimal" data-k="duree" value="${esc(r.duree)}" aria-label="Durée ligne ${i+1}" style="width:80px;text-align:right" class="${touched&&e.includes('durée')?'err':''}"></td>
+    <td class="r c-hh"><b>${c.hh}</b></td><td class="r c-th">${c.th}</td><td class="r c-ec">${c.ec}</td>
+    <td><input data-k="note" value="${esc(r.note)}" aria-label="Remarque ligne ${i+1}" style="min-width:140px"></td>
+    <td style="white-space:nowrap"><button type="button" class="sm ghost" data-bcp="${i}">Copier</button><button type="button" class="sm ghost danger" data-brm="${i}" aria-label="Supprimer la ligne ${i+1}">×</button></td></tr>`}).join('')}</tbody></table></div>
+  <div class="bar" style="margin:10px 0 0"><button type="button" id="bkAdd1">+ 1 ligne</button><button type="button" id="bkAdd5">+ 5 lignes</button><button type="button" class="ghost" id="bkClear">Vider le tableau</button><span class="grow"></span><span class="small muted" id="bkCount">${ok} ligne${ok>1?'s':''} prête${ok>1?'s':''} sur ${S.bulk.length}</span><button type="button" class="pri" id="bkSave">Enregistrer les lignes complètes</button></div>`;
+  const tb=box.querySelector('tbody');
+  tb.addEventListener('input',e=>{const el=e.target,tr=el.closest('tr');if(!tr||!el.dataset.k)return;const r=S.bulk[+tr.dataset.i];r[el.dataset.k]=el.dataset.k==='pt'?+el.value:el.value;
+    const c=bulkCalcCells(r);tr.querySelector('.c-hh').innerHTML='<b>'+c.hh+'</b>';tr.querySelector('.c-th').innerHTML=c.th;tr.querySelector('.c-ec').innerHTML=c.ec;
+    const ok=S.bulk.filter(x=>!bulkCheck(x).length).length;$('#bkCount').textContent=`${ok} ligne${ok>1?'s':''} prête${ok>1?'s':''} sur ${S.bulk.length}`;
+    if(!bulkCheck(r).length){tr.classList.remove('bad');tr.querySelectorAll('.err').forEach(x=>x.classList.remove('err'))}});
+  tb.addEventListener('change',e=>{if(e.target.dataset.k==='act'){const tr=e.target.closest('tr'),r=S.bulk[+tr.dataset.i];const m=matchAct(r.act,+r.pt);if(m!==r.act){r.act=m;e.target.value=m;e.target.dispatchEvent(new Event('input',{bubbles:true}))}}});
+  const blank=()=>({pt,act:'',date:'',n:2,duree:'',note:''});
+  $$('[data-bcp]').forEach(b=>b.onclick=()=>{const i=+b.dataset.bcp;const r={...S.bulk[i]};if(r.date)r.date=add(r.date,1);S.bulk.splice(i+1,0,r);renderBulk(pt,Y)});
+  $$('[data-brm]').forEach(b=>b.onclick=()=>{S.bulk.splice(+b.dataset.brm,1);renderBulk(pt,Y)});
+  $('#bkAdd1').onclick=()=>{S.bulk.push(blank());renderBulk(pt,Y)};
+  $('#bkAdd5').onclick=()=>{for(let i=0;i<5;i++)S.bulk.push(blank());renderBulk(pt,Y)};
+  $('#bkClear').onclick=()=>{S.bulk=[];renderBulk(pt,Y)};
+  $('#bkPasteT').onclick=()=>{$('#bkPaste').hidden=!$('#bkPaste').hidden;if(!$('#bkPaste').hidden)$('#bkTxt').focus()};
+  $('#bkImp').onclick=()=>{const L=$('#bkTxt').value.split(/\r?\n/).map(l=>l.split(/\t|;/)).filter(c=>c.join('').trim());let n=0;
+    S.bulk=S.bulk.filter(r=>r.act||r.date||r.duree);
+    L.forEach(c=>{const date=parseDateFr(c[0],Y);if(!date&&/date/i.test(c[0]||''))return;S.bulk.push({pt,act:matchAct(c[1],pt),date,n:Math.round(numFr(c[2]))||1,duree:String(c[3]||'').trim(),note:(c[4]||'').trim()});n++});
+    $('#bkTxt').value='';renderBulk(pt,Y);toast(n+' ligne'+(n>1?'s':'')+' ajoutée'+(n>1?'s':'')+' au tableau : vérifiez puis enregistrez')};
+  $('#bkPre').onclick=()=>{const rows=marcheRows(pt,Y);let n=0;S.bulk=S.bulk.filter(r=>r.act||r.date||r.duree);
+    rows.forEach(r=>{const ps=[...P.values()].filter(p=>p.pt===pt&&p.act===r.act&&p.year===PLANYEAR&&!p.hors).sort((a,b)=>a.f1.localeCompare(b.f1));
+      const sh=d=>String(Y)+d.slice(4);
+      ps.slice(r.done).forEach(p=>{const mid=add(sh(p.f1),Math.round((P0(sh(p.f2))-P0(sh(p.f1)))/864e5/2));if(mid>=today)return;
+        const n2=r.ht>8?2:1;S.bulk.push({pt,act:r.act,date:mid,n:n2,duree:String(r2(r.ht/n2)).replace('.',','),note:'',pre:true});n++})});
+    if(!S.bulk.length)S.bulk.push(blank());renderBulk(pt,Y);
+    toast(n?`${n} passages pré-remplis avec la date prévue et le temps théorique : corrigez date, ouvriers et durée réels, supprimez ceux non faits`:'Aucun passage échu restant à saisir pour ce site')};
+  $('#bkSave').onclick=()=>{const good=[],keep=[];S.bulk.forEach(r=>{if(bulkCheck(r).length){if(r.act||r.date||r.duree)keep.push(r);return}good.push(r)});
+    if(!good.length){toast('Aucune ligne complète : il faut site, poste, date, ouvriers et durée');renderBulk(pt,Y);return}
+    const at=new Date().toISOString();
+    const docs=good.map((r,i)=>{const s=SITES.get(+r.pt),n=Math.round(numFr(r.n)),du=numFr(r.duree),act=matchAct(r.act,+r.pt);
+      return{id:'e'+Date.now().toString(36)+i.toString(36)+Math.random().toString(36).slice(2,5),pt:+r.pt,client:s.client,site:s.site,act,date:r.date,n,duree:du,hh:r2(n*du),ouvriers:[],note:String(r.note||'').trim(),at,lot:true}});
+    S.bulk=keep;putMany('prestations',docs);
+    toast(`${docs.length} prestation${docs.length>1?'s':''} enregistrée${docs.length>1?'s':''} (${fh(docs.reduce((a,d)=>a+d.hh,0))})${keep.length?' · '+keep.length+' ligne(s) incomplète(s) gardée(s) dans le tableau':''}`)};
+}
+// ---------- facturation : forfait à la prestation ou mensualités ----------
+const eur=v=>(+v||0).toLocaleString('fr-BE',{style:'currency',currency:'EUR',maximumFractionDigits:2});
+const cliDoc=c=>ST.clients[slug(c)]||{client:c};
+const prixOf=(pt,act)=>{const o=(ST.marche['pt-'+pt]||{}).postes?.[act];return o&&o.prix!=null&&o.prix!==''?+o.prix:null};
+function doneEvents(pt,Y){ // prestations saisies + passages marqués réalisés, avec date et heures
+  const ev=prestaOf(pt,Y).map(e=>({date:e.date,act:e.act,hh:+e.hh||0}));
+  Object.values(ST.realisations).forEach(r=>{if(r.pt===pt&&r.done&&String(r.date||'').startsWith(String(Y)))ev.push({date:r.date,act:r.act,hh:+r.hours||0})});return ev}
+function billingCard(s,pt,Y){
+  const c=cliDoc(s.client),mode=c.mode||'',sitesC=D.sites.filter(x=>x.client===s.client&&marcheActs(x.pt).length);
+  const months=[...Array(12).keys()];
+  let rowsM='';
+  if(mode==='prestation'){const ev=doneEvents(pt,Y);
+    rowsM=months.map(m=>{const L=ev.filter(e=>+e.date.slice(5,7)===m+1);const amt=L.reduce((a,e)=>a+(prixOf(pt,e.act)||0),0),miss=L.filter(e=>prixOf(pt,e.act)==null).length;
+      return`<tr><td>${MOISL[m]}</td><td class="r">${L.length||''}</td><td class="r">${L.length?fh(L.reduce((a,e)=>a+e.hh,0)):''}</td><td class="r"><b>${L.length?eur(amt):''}</b>${miss?` <span class="pill w">${miss} sans prix</span>`:''}</td></tr>`}).join('');
+    const ev2=doneEvents(pt,Y),tot=ev2.reduce((a,e)=>a+(prixOf(pt,e.act)||0),0),hh=ev2.reduce((a,e)=>a+e.hh,0);
+    rowsM+=`<tr><td><b>Total ${Y}</b></td><td class="r"><b>${ev2.length}</b></td><td class="r"><b>${fh(hh)}</b></td><td class="r"><b>${eur(tot)}</b>${hh?` <span class="muted small">(${eur(tot/hh)} / h réalisée)</span>`:''}</td></tr>`}
+  if(mode==='mensuel'){const an=+c.annuel||0,mens=an/12;
+    rowsM=months.map(m=>{let hh=0;sitesC.forEach(x=>doneEvents(x.pt,Y).forEach(e=>{if(+e.date.slice(5,7)===m+1)hh+=e.hh}));
+      return`<tr><td>${MOISL[m]}</td><td class="r">${eur(mens)}</td><td class="r">${hh?fh(hh):''}</td><td class="r">${hh?eur(mens/hh)+' / h':''}</td></tr>`}).join('');
+    let hhT=0;sitesC.forEach(x=>doneEvents(x.pt,Y).forEach(e=>hhT+=e.hh));
+    rowsM+=`<tr><td><b>Total ${Y}</b></td><td class="r"><b>${eur(an)}</b></td><td class="r"><b>${fh(hhT)}</b></td><td class="r"><b>${hhT?eur(an/hhT)+' / h':''}</b></td></tr>`}
+  return`<div class="card" style="margin:0 0 16px"><div class="bar" style="margin-bottom:8px"><h3 class="grow" style="margin:0">Facturation · ${esc(s.client)}</h3>
+   <div class="chips"><label><input type="radio" name="bilMode" value="prestation" ${mode==='prestation'?'checked':''}>Au forfait (paie à la prestation)</label><label><input type="radio" name="bilMode" value="mensuel" ${mode==='mensuel'?'checked':''}>Mensualités (montant annuel ÷ 12)</label>${mode?'<button class="sm ghost" id="bilReset">Non défini</button>':''}</div></div>
+   ${!mode?'<p class="small muted" style="margin:0">Choisissez comment ce client paie. Le choix vaut pour tous ses sites.</p>':''}
+   ${mode==='mensuel'?`<div class="bar" style="margin-bottom:8px"><label class="small" style="font-weight:600">Montant annuel HTVA (tous les sites du client)<input type="number" id="bilAn" min="0" step="any" value="${esc(c.annuel??'')}" style="width:160px;margin-left:8px"></label><span class="num" style="font-size:22px;font-weight:600">${eur((+c.annuel||0)/12)} / mois</span><span class="small muted">${sitesC.length} site${sitesC.length>1?'s':''} : heures réalisées comptées sur l’ensemble</span></div>`:''}
+   ${mode==='prestation'?'<p class="small muted" style="margin:0 0 8px">Indiquez le prix HTVA par passage dans le tableau des postes ci-dessous. Montant = prestations réalisées × prix.</p>':''}
+   ${mode?`<details ${S.bilOpen?'open':''} id="bilDet"><summary class="small" style="cursor:pointer;font-weight:600">Détail mois par mois ${Y}</summary><div class="scroll"><table class="stack" style="margin-top:8px"><thead><tr><th>Mois</th>${mode==='prestation'?'<th class="r">Prestations</th><th class="r">Heures réalisées</th><th class="r">À facturer</th>':'<th class="r">Mensualité</th><th class="r">Heures réalisées</th><th class="r">Recette par heure</th>'}</tr></thead><tbody>${rowsM}</tbody></table></div></details>`:''}</div>`;
 }
 function renderMarche(){
-  const q=$('#mkQ').value.trim().toLowerCase();
-  const sites=D.sites.filter(s=>!q||[s.client,s.site,s.ville,s.cp].join(' ').toLowerCase().includes(q));
-  if(!S.mkPt||!SITES.get(S.mkPt))S.mkPt=sites[0]&&sites[0].pt;
-  $('#mkSites').innerHTML=sites.slice(0,300).map(s=>{const rows=marcheRows(s.pt),tot=rows.reduce((a,r)=>a+r.qtt,0),dn=rows.reduce((a,r)=>a+r.done,0);
-    return`<button class="mkS ${s.pt===S.mkPt?'on':''}" data-pt="${s.pt}"><b>${esc(s.client)}</b><span class="muted small">${esc(s.site)}</span><span class="bar2"><i style="width:${tot?dn/tot*100:0}%"></i></span><span class="small">${dn} / ${tot} passages réalisés</span></button>`}).join('')||'<p class="muted">Aucun site.</p>';
+  const q=$('#mkQ').value.trim().toLowerCase(),Y=S.mkYear||(S.mkYear=+today.slice(0,4));if(!S.prMode)S.prMode=Y>=PLANYEAR?'one':'bulk';
+  // les lignes « en-tête » du classeur sans aucune prestation (ex. SIBELGA TRANSFERT LAURENTY, EVERECITY) ne sont pas des sites à suivre
+  const bf=$('#mkBil').value;
+  const sites=D.sites.filter(s=>marcheActs(s.pt).length&&(!bf||(cliDoc(s.client).mode||'none')===bf)&&(!q||[s.client,s.site,s.ville,s.cp].join(' ').toLowerCase().includes(q))).sort((a,b)=>a.client.localeCompare(b.client,'fr')||String(a.site).localeCompare(String(b.site),'fr'));
+  if(!S.mkPt||!SITES.get(S.mkPt)||!marcheActs(S.mkPt).length)S.mkPt=sites[0]&&sites[0].pt;
+  $('#mkSites').innerHTML=sites.slice(0,300).map(s=>{const rows=marcheRows(s.pt,Y),tot=rows.reduce((a,r)=>a+r.qtt,0),dn=rows.reduce((a,r)=>a+r.done,0);
+    return`<button class="mkS ${s.pt===S.mkPt?'on':''}" data-pt="${s.pt}"><b>${esc(s.client)}</b><span class="muted small">${esc(s.site)}</span><span class="bar2"><i style="width:${tot?Math.min(100,dn/tot*100):0}%"></i></span><span class="small">${dn} / ${tot} passages réalisés en ${Y}</span>${cliDoc(s.client).mode?`<span class="pill ${cliDoc(s.client).mode==='mensuel'?'ok':'o'}" style="justify-self:start">${cliDoc(s.client).mode==='mensuel'?'Mensualités':'Au forfait'}</span>`:''}</button>`}).join('')||'<p class="muted">Aucun site.</p>';
   $$('.mkS').forEach(b=>b.onclick=()=>{S.mkPt=+b.dataset.pt;renderMarche()});
   const pt=S.mkPt,s=SITES.get(pt);if(!s){$('#mkBody').innerHTML='';return}
-  const rows=marcheRows(pt),C=ensureCalc();
-  const T=k=>rows.reduce((a,r)=>a+r[k],0);
-  $('#mkBody').innerHTML=`<div class="bar"><div class="grow"><h2>${esc(s.client)}</h2><div class="muted">${esc(s.site)} · ${esc([s.adr,s.cp,s.ville].filter(Boolean).join(' '))}${s.fin?' · fin de contrat '+dlabY(s.fin):''}</div></div><button class="ghost" id="mkSite">Fiche du site</button></div>
-  <div class="kpis"><div class="kpi"><div class="num">${T('qtt')}</div><span>passages compris dans le marché ${PLANYEAR}</span></div><div class="kpi"><div class="num">${T('done')}</div><span>réalisés</span></div><div class="kpi"><div class="num">${T('enc')}</div><span>en cours</span></div><div class="kpi"><div class="num">${T('rest')}</div><span>restant à réaliser</span></div><div class="kpi"><div class="num">${fh(T('hReal'))}</div><span>heures réelles saisies</span></div></div>
-  <div class="scroll"><table class="stack" id="mkTbl"><thead><tr><th>Poste</th><th class="r">Passages au marché</th><th class="r">Heures / passage</th><th class="r">Réalisés</th><th class="r">Restants</th><th>Avancement</th><th></th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r.act)}</b>${r.ajout?' <span class="pill o">ajouté</span>':r.mod?' <span class="pill o">modifié</span>':''}</td>
-    <td class="r"><input type="number" min="0" step="1" value="${r.qtt}" data-mq="${esc(r.act)}" style="width:80px;min-height:36px;padding:4px 6px;text-align:right" aria-label="Passages au marché"></td>
-    <td class="r"><input type="number" min="0" step="any" value="${r2(r.ht)}" data-mh="${esc(r.act)}" style="width:90px;min-height:36px;padding:4px 6px;text-align:right" aria-label="Heures par passage"></td>
+  const rows=marcheRows(pt,Y),C=ensureCalc(),T=k=>rows.reduce((a,r)=>a+r[k],0),pct=+PR().pct||50,edit=Y===PLANYEAR,BIL=cliDoc(s.client).mode||'';
+  const years=[+today.slice(0,4),PLANYEAR].filter((v,i,a)=>a.indexOf(v)===i);
+  const pres=prestaOf(pt,Y);
+  $('#mkBody').innerHTML=`<div class="bar"><div class="grow"><h2>${esc(s.client)}</h2><div class="muted">${esc(s.site)} · ${esc([s.adr,s.cp,s.ville].filter(Boolean).join(' '))}${s.fin?' · fin de contrat '+dlabY(s.fin):''}</div></div>
+   <div class="chips">${years.map(y=>`<label><input type="radio" name="mkY" value="${y}" ${y===Y?'checked':''}>${y}</label>`).join('')}</div><button class="ghost" id="mkSite">Fiche du site</button></div>
+  ${billingCard(s,pt,Y)}
+  <div class="kpis"><div class="kpi"><div class="num">${T('qtt')}</div><span>passages compris dans le marché</span></div><div class="kpi"><div class="num">${T('done')}</div><span>réalisés en ${Y}</span></div><div class="kpi"><div class="num">${T('rest')}</div><span>restant à réaliser</span></div>
+   <div class="kpi"><div class="num">${fh(T('hReal'))}</div><span>temps réalisé (heures-homme)</span></div><div class="kpi"><div class="num">${fh(T('hTheo'))}</div><span>temps théorique de ces passages</span></div><div class="kpi"><div class="num" style="font-size:22px">${ecart(T('hReal'),T('hTheo'))}</div><span>écart réalisé / théorique</span></div></div>
+  <div class="scroll"><table class="stack"><thead><tr><th>Poste</th><th class="r">Passages au marché</th><th class="r">Heures théoriques / passage</th><th class="r">Réalisés</th><th class="r">Restants</th><th class="r">Temps réalisé</th><th class="r">Théorique</th><th class="r">Écart</th><th class="r">Moyenne / passage</th>${BIL==='prestation'?'<th class="r">Prix / passage (HTVA)</th><th class="r">Montant réalisé</th>':''}${edit?'<th></th>':''}</tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r.act)}</b>${r.ajout?' <span class="pill o">ajouté</span>':r.mod?' <span class="pill o">modifié</span>':''}<span class="bar2" style="width:110px"><i style="width:${r.qtt?Math.min(100,r.done/r.qtt*100):0}%"></i></span></td>
+    <td class="r">${edit?`<input type="number" min="0" step="1" value="${r.qtt}" data-mq="${esc(r.act)}" style="width:80px;min-height:36px;padding:4px 6px;text-align:right" aria-label="Passages au marché">`:r.qtt}</td>
+    <td class="r">${edit?`<input type="number" min="0" step="any" value="${r2(r.ht)}" data-mh="${esc(r.act)}" style="width:90px;min-height:36px;padding:4px 6px;text-align:right" aria-label="Heures par passage">`:fh(r.ht)}</td>
     <td class="r">${r.done}${r.enc?` <span class="muted small">+${r.enc} en cours</span>`:''}</td><td class="r"><b>${r.rest}</b></td>
-    <td style="min-width:120px"><span class="bar2"><i style="width:${r.qtt?r.done/r.qtt*100:0}%"></i></span></td>
-    <td>${r.ajout||r.mod?`<button class="sm ghost" data-mr="${esc(r.act)}">${r.ajout?'Retirer':'Revenir au classeur'}</button>`:''}</td></tr>`).join('')}</tbody></table></div>
-  <form class="bar" id="mkAdd" style="margin-top:12px"><select name="act" aria-label="Poste à ajouter">${Object.values(D.codes).concat(['Sarclage','Débroussaillage','Toiture végétale','Taille arbre','Plantation','Abattage']).filter(a=>!rows.some(r=>r.act===a)).map(a=>`<option>${esc(a)}</option>`).join('')}</select><input type="number" name="q" min="1" value="1" style="width:90px" aria-label="Passages"><input type="number" name="h" min="0" step="0.25" value="2" style="width:100px" aria-label="Heures par passage"><button>Ajouter un poste au marché</button></form>
-  <p class="small muted">Modifier le nombre de passages ou les heures replanifie l’année ${PLANYEAR} : les passages en trop sont retirés (« Hors marché »), les passages ajoutés sont répartis sur la saison du poste.</p>
-  <h3 style="margin:18px 0 6px">Passages</h3>
+    <td class="r">${r.hReal?fh(r.hReal):'<span class="muted">—</span>'}</td><td class="r">${r.done?fh(r.hTheo):'<span class="muted">—</span>'}</td><td class="r">${r.hReal?ecart(r.hReal,r.hTheo):'<span class="muted">—</span>'}</td>
+    <td class="r">${r.done&&r.hReal?fh(r.hReal/r.done):'<span class="muted">—</span>'}</td>
+    ${BIL==='prestation'?`<td class="r"><input type="number" min="0" step="any" value="${esc(prixOf(pt,r.act)??'')}" data-mp="${esc(r.act)}" placeholder="€" style="width:100px;min-height:36px;padding:4px 6px;text-align:right" aria-label="Prix par passage"></td><td class="r">${prixOf(pt,r.act)!=null?eur(r.done*prixOf(pt,r.act)):'<span class="muted">—</span>'}</td>`:''}
+    ${edit?`<td>${r.ajout||r.mod?`<button class="sm ghost" data-mr="${esc(r.act)}">${r.ajout?'Retirer':'Revenir au classeur'}</button>`:''}</td>`:''}</tr>`).join('')}</tbody></table></div>
+  <p class="small muted">Théorique = heures par passage du contrat (Passage-temps) × passages réalisés. Pour mémoire, le planning vise ${pct} % de ce temps. ${Y<PLANYEAR?`Les passages de fin ${Y} encore prévus diminuent à mesure que vous saisissez les prestations effectuées.`:''}</p>
+  ${edit?`<form class="bar" id="mkAdd" style="margin-top:4px"><select name="act" aria-label="Poste à ajouter">${Object.values(D.codes).concat(['Sarclage','Débroussaillage','Toiture végétale','Taille arbre','Plantation','Abattage']).filter(a=>!rows.some(r=>r.act===a)).map(a=>`<option>${esc(a)}</option>`).join('')}</select><input type="number" name="q" min="1" value="1" style="width:90px" aria-label="Passages"><input type="number" name="h" min="0" step="any" value="2" style="width:100px" aria-label="Heures par passage"><button>Ajouter un poste au marché</button></form>
+  <p class="small muted">Modifier le nombre de passages ou les heures replanifie l’année ${PLANYEAR} : les passages en trop sont retirés (« Hors marché »), les passages ajoutés sont répartis sur la saison du poste.</p>`:''}
+
+  <div class="card" style="margin-top:18px">
+   <div class="bar" style="margin-bottom:10px"><h3 class="grow" style="margin:0">Saisir des prestations effectuées</h3><div class="chips"><label><input type="radio" name="prMode" value="bulk" ${S.prMode!=='one'?'checked':''}>Plusieurs à la fois</label><label><input type="radio" name="prMode" value="one" ${S.prMode==='one'?'checked':''}>Une par une</label></div></div>
+   <div id="prBulk" ${S.prMode==='one'?'hidden':''}></div>
+   <form class="f" id="prForm" autocomplete="off" ${S.prMode!=='one'?'hidden':''}>
+    <div class="two"><label>Poste<select name="act">${rows.map(r=>`<option>${esc(r.act)}</option>`).join('')}<option value="__autre">Autre…</option></select></label><label>Date de la prestation<input type="date" name="date" value="${esc(S.prDate||today)}" required></label></div>
+    <label id="prAutreL" hidden>Nom du poste<input name="autre" placeholder="ex. Toiture végétale"></label>
+    <div class="two"><label>Nombre d’ouvriers sur site<input type="number" name="n" min="1" step="1" value="2" required></label><label>Durée sur site (heures)<input type="number" name="duree" min="0" step="any" value="" required placeholder="ex. 3,5"></label></div>
+    <div class="small" id="prCalc" style="font-weight:600"></div>
+    <details><summary class="small" style="cursor:pointer">Préciser les ouvriers (facultatif)</summary><div class="chips" style="margin-top:8px">${PEOPLE.map(x=>`<label><input type="checkbox" name="ouv" value="${esc(x.name)}">${esc(x.name)}</label>`).join('')}</div></details>
+    <label>Remarque<input name="note" placeholder="ex. haies très développées, accès difficile…"></label>
+    <div class="bar" style="margin:0"><button class="pri">Enregistrer la prestation</button><button type="button" class="ghost" id="prCancel" hidden>Annuler la modification</button></div>
+   </form>
+  </div>
+
+  <div class="bar" style="margin:18px 0 6px"><h3 class="grow" style="margin:0">Prestations effectuées en ${Y} (${pres.length})</h3>${pres.length?'<button class="ghost" id="prCopySel">Copier la sélection dans le tableau</button>':''}</div>
+  ${pres.length?`<div class="scroll"><table class="stack"><thead><tr><th><input type="checkbox" id="prAll" aria-label="Tout sélectionner" style="width:20px;min-height:20px"></th><th>Date</th><th>Poste</th><th class="r">Ouvriers</th><th class="r">Durée sur site</th><th class="r">Temps réalisé</th><th class="r">Théorique</th><th class="r">Écart</th><th>Remarque</th><th></th></tr></thead><tbody>${pres.map(e=>{const{ht}=posteDef(pt,e.act);
+    return`<tr><td><input type="checkbox" class="prSel" value="${esc(e.id)}" aria-label="Sélectionner" style="width:20px;min-height:20px"></td><td style="white-space:nowrap">${dlabY(e.date)}</td><td>${esc(e.act)}</td><td class="r">${esc(e.n)}${e.ouvriers&&e.ouvriers.length?`<div class="muted small">${esc(e.ouvriers.join(', '))}</div>`:''}</td><td class="r">${fh(e.duree)}</td><td class="r"><b>${fh(e.hh)}</b></td><td class="r">${ht?fh(ht):'—'}</td><td class="r">${ecart(+e.hh||0,ht)}</td><td class="small">${esc(e.note||'')}</td><td style="white-space:nowrap"><button class="sm ghost" data-prc="${esc(e.id)}">Copier</button><button class="sm ghost" data-pre="${esc(e.id)}">Modifier</button><button class="sm ghost danger" data-prd="${esc(e.id)}">Supprimer</button></td></tr>`}).join('')}</tbody></table></div>`:'<div class="card muted">Aucune prestation saisie pour cette année.</div>'}
+
+  <h3 style="margin:18px 0 6px">Passages planifiés ${Y}</h3>
   <div class="scroll"><table class="stack"><thead><tr><th>Poste</th><th>Passage</th><th>Date(s)</th><th>Équipe</th><th>Statut</th><th></th></tr></thead><tbody>${rows.flatMap(r=>r.ps.map(p=>{const x=C.res.get(p.n)||{days:[]};const rl=ST.realisations['n'+p.n];
-    return`<tr><td>${esc(p.act)}</td><td>${esc(p.passage)}${p.ajout?' <span class="pill o">ajouté</span>':''}</td><td class="small">${x.days.length?[...new Set(x.days.map(y=>dlab(y.d)))].slice(0,4).join(', ')+(x.days.length>4?'…':''):`fenêtre ${dlab(p.f1)} → ${dlab(p.f2)}`}</td><td class="small">${esc([...new Set(x.days.flatMap(y=>y.team))].join(' + '))}</td><td><span class="pill ${x.status==='Réalisé'?'ok':(x.status||'').startsWith('Planifié')?'':'w'}">${esc(x.status||'')}</span>${rl&&rl.note?`<div class="small muted">${esc(rl.note)}</div>`:''}</td><td><button class="sm" data-real="${esc(p.n)}">${rl?'Modifier':'Marquer réalisé'}</button></td></tr>`})).join('')}</tbody></table></div>`;
+    return`<tr><td>${esc(p.act)}</td><td>${esc(p.passage)}${p.ajout?' <span class="pill o">ajouté</span>':''}${p.cale?`<div class="small muted">calé sur ${dlabY(p.cale)}</div>`:''}</td><td class="small">${x.days.length?[...new Set(x.days.map(y=>dlab(y.d)))].slice(0,4).join(', ')+(x.days.length>4?'…':''):`fenêtre ${dlab(p.f1)} → ${dlab(p.f2)}`}</td><td class="small">${esc([...new Set(x.days.flatMap(y=>y.team))].join(' + '))}</td><td><span class="pill ${x.status==='Réalisé'||(x.status||'').startsWith('Déjà')?'ok':(x.status||'').startsWith('Planifié')?'':'w'}">${esc(x.status||'')}</span>${rl&&rl.note?`<div class="small muted">${esc(rl.note)}</div>`:''}</td><td>${p.hors?'':`<button class="sm" data-real="${esc(p.n)}">${rl?'Modifier':'Marquer réalisé'}</button>`}</td></tr>`})).join('')||'<tr><td colspan="6" class="muted">Aucun passage planifié pour cette année.</td></tr>'}</tbody></table></div>`;
   $('#mkSite').onclick=()=>openSite(pt);
+  $$('[name=mkY]').forEach(i=>i.onchange=()=>{S.mkYear=+i.value;S.prMode=S.mkYear>=PLANYEAR?'one':'bulk';renderMarche()});
   const setPoste=(act,patch)=>{const m=ST.marche['pt-'+pt]||{pt,client:s.client,site:s.site,postes:{}};const po={...(m.postes||{})};po[act]={...(po[act]||{}),...patch};put('marche','pt-'+pt,{...m,postes:po,updated:new Date().toISOString()})};
   $$('[data-mq]').forEach(i=>i.onchange=()=>{setPoste(i.dataset.mq,{qtt:Math.max(0,Math.round(+i.value||0))});toast('Marché mis à jour, planning recalculé')});
+  $$('[data-mp]').forEach(i=>i.onchange=()=>{setPoste(i.dataset.mp,{prix:i.value===''?null:Math.max(0,+i.value||0)});toast('Prix enregistré')});
+  const setCli=patch=>{const c=cliDoc(s.client);put('clients',slug(s.client),{...c,client:s.client,...patch,updated:new Date().toISOString()})};
+  $$('[name=bilMode]').forEach(i=>i.onchange=()=>{setCli({mode:i.value});toast(i.value==='mensuel'?'Client en mensualités':'Client au forfait, payé à la prestation')});
+  $('#bilReset')&&($('#bilReset').onclick=()=>setCli({mode:''}));
+  $('#bilAn')&&($('#bilAn').onchange=e=>{setCli({annuel:Math.max(0,+e.target.value||0)});toast('Montant annuel enregistré')});
+  $('#bilDet')&&($('#bilDet').ontoggle=e=>{S.bilOpen=e.target.open});
   $$('[data-mh]').forEach(i=>i.onchange=()=>{setPoste(i.dataset.mh,{ht:Math.max(0,+i.value||0)});toast('Heures mises à jour, planning recalculé')});
   $$('[data-mr]').forEach(b=>b.onclick=()=>{const m=ST.marche['pt-'+pt];if(!m)return;const po={...m.postes};delete po[b.dataset.mr];put('marche','pt-'+pt,{...m,postes:po})});
-  $('#mkAdd').onsubmit=e=>{e.preventDefault();const f=e.target;setPoste(f.act.value,{qtt:Math.max(1,+f.q.value||1),ht:+f.h.value||0});toast('Poste ajouté au marché')};
-  $$('[data-real]').forEach(b=>b.onclick=()=>openReal(b.dataset.real));
+  $('#mkAdd')&&($('#mkAdd').onsubmit=e=>{e.preventDefault();const f=e.target;setPoste(f.act.value,{qtt:Math.max(1,+f.q.value||1),ht:+f.h.value||0});toast('Poste ajouté au marché')});
+  $$('#mkBody [data-real]').forEach(b=>b.onclick=()=>openReal(b.dataset.real));
+  // saisie groupée ou une par une
+  $$('[name=prMode]').forEach(i=>i.onchange=()=>{S.prMode=i.value;$('#prBulk').hidden=S.prMode==='one';$('#prForm').hidden=S.prMode!=='one'});
+  if(S.bulkPt!==pt){S.bulk=(S.bulk||[]).filter(r=>r.act||r.date||r.duree);S.bulk.forEach(r=>{if(!r.act&&!r.date)r.pt=pt});S.bulkPt=pt}
+  renderBulk(pt,Y);
+  // saisie d'une prestation
+  const f=$('#prForm');
+  const calc=()=>{const n=+f.n.value||0,du=+String(f.duree.value).replace(',','.')||0,a=f.act.value==='__autre'?f.autre.value.trim():f.act.value;const{ht}=posteDef(pt,a);
+    $('#prAutreL').hidden=f.act.value!=='__autre';
+    $('#prCalc').innerHTML=n&&du?`Temps réalisé : ${n} × ${fh(du)} = ${fh(n*du)} · théorique ${ht?fh(ht):'non défini'}${ht?' · écart '+ecart(n*du,ht):''}`:'';};
+  f.addEventListener('input',e=>{if(e.target.name==='ouv'){const k=$$('#prForm [name=ouv]:checked').length;if(k)f.n.value=k}calc()});calc();
+  const fillEdit=e=>{S.prEdit=e.id;f.act.value=marcheActs(pt).includes(e.act)?e.act:'__autre';if(f.act.value==='__autre')f.autre.value=e.act;f.date.value=e.date;f.n.value=e.n;f.duree.value=e.duree;f.note.value=e.note||'';
+    $$('#prForm [name=ouv]').forEach(i=>i.checked=(e.ouvriers||[]).includes(i.value));$('#prCancel').hidden=false;calc();f.scrollIntoView({behavior:'smooth',block:'center'})};
+  if(S.prEdit&&ST.prestations[S.prEdit]&&ST.prestations[S.prEdit].pt===pt)fillEdit(ST.prestations[S.prEdit]);else S.prEdit=null;
+  $('#prCancel').onclick=()=>{S.prEdit=null;renderMarche()};
+  f.onsubmit=e=>{e.preventDefault();const a=f.act.value==='__autre'?f.autre.value.trim():f.act.value;if(!a){toast('Indiquez le poste');return}
+    const n=Math.max(1,Math.round(+f.n.value||1)),du=+String(f.duree.value).replace(',','.')||0;if(!(du>0)){toast('Indiquez la durée sur site');return}
+    const id=S.prEdit||('e'+Date.now().toString(36)+Math.random().toString(36).slice(2,5));
+    put('prestations',id,{id,pt,client:s.client,site:s.site,act:a,date:f.date.value,n,duree:du,hh:r2(n*du),ouvriers:$$('#prForm [name=ouv]:checked').map(i=>i.value),note:f.note.value.trim(),at:new Date().toISOString()});
+    S.prDate=f.date.value;S.prEdit=null;toast('Prestation enregistrée : '+fh(n*du)+' réalisées')};
+  $$('[data-pre]').forEach(b=>b.onclick=()=>{const e=ST.prestations[b.dataset.pre];if(e)fillEdit(e)});
+  const copyTo=ids=>{const L=ids.map(id=>ST.prestations[id]).filter(Boolean);if(!L.length){toast('Cochez au moins une prestation');return}
+    S.bulk=(S.bulk||[]).filter(r=>r.act||r.date||r.duree);L.forEach(e=>S.bulk.push({pt:e.pt,act:e.act,date:'',n:e.n,duree:String(e.duree).replace('.',','),note:e.note||''}));
+    S.prMode='bulk';$('#prBulk').hidden=false;$('#prForm').hidden=true;$$('[name=prMode]').forEach(i=>i.checked=i.value==='bulk');renderBulk(pt,Y);
+    $('#prBulk').scrollIntoView({behavior:'smooth',block:'start'});toast(L.length+' prestation'+(L.length>1?'s copiées':' copiée')+' : indiquez la date, ajustez le nombre d’ouvriers puis enregistrez')};
+  $$('[data-prc]').forEach(b=>b.onclick=()=>copyTo([b.dataset.prc]));
+  $('#prCopySel')&&($('#prCopySel').onclick=()=>copyTo($$('.prSel:checked').map(i=>i.value)));
+  $('#prAll')&&($('#prAll').onchange=e=>$$('.prSel').forEach(i=>i.checked=e.target.checked));
+  $$('[data-prd]').forEach(b=>b.onclick=()=>{if(b.dataset.c!=='1'){b.dataset.c='1';b.textContent='Confirmer';return}del('prestations',b.dataset.prd);toast('Prestation supprimée')});
 }
-$('#mkQ').addEventListener('input',()=>renderMarche());
+$('#mkQ').addEventListener('input',()=>renderMarche());$('#mkBil').addEventListener('change',()=>renderMarche());
 
 // ---------- réalisation d'un passage (fin plus tôt, heures réelles) ----------
 function openReal(nRaw,dDef,who){
@@ -1179,7 +1438,7 @@ function renderChantiers(){
   <div class="bar" style="margin:10px 0 0"><button data-ed="${esc(c.id)}">Modifier</button><button data-dup="${esc(c.id)}" class="ghost">Dupliquer</button><button data-go="${esc(c.d1)}" class="ghost">Voir dans le planning</button></div></div>`}).join(''):`<div class="card muted">Aucun chantier ponctuel ${flt==='avenir'?'à venir':flt==='passes'?'passé':''}. Remplissez le formulaire pour en ajouter un.</div>`;
   $$('[data-ed]').forEach(b=>b.onclick=()=>editChantier(b.dataset.ed));
   $$('[data-dup]').forEach(b=>b.onclick=()=>{const c=ST.chantiers[b.dataset.dup];editChantier(c.id);setTimeout(()=>{S.editC=null;$('#cTitle').textContent='Nouveau chantier (copie)';$('#cDel').hidden=true},10)});
-  $$('[data-go]').forEach(b=>b.onclick=()=>{S.week=mon(b.dataset.go);S.person='__team';location.hash='planning'});
+  $$('[data-go]').forEach(b=>b.onclick=()=>{setDay(b.dataset.go);S.person='__team';location.hash='planning'});
 }
 
 // ---------- machines ----------
@@ -1249,6 +1508,8 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-exp]
   if(k==='all'){const d=xlsx([
     ['Chantiers ponctuels',[['Client','Chantier','Adresse','CP','Ville','Zone','Du','Au','Activités','H/ouvrier/jour','Ouvriers','Machines','Statut','Remarque'],...chantiers().map(c=>[c.client,c.site,c.adr,c.cp,c.ville,c.zone,c.d1,c.d2,(c.acts||[]).join(', '),c.h,(c.ouvriers||[]).join(', '),(c.machines||[]).map(mName).join(', '),c.statut,c.note])]],
     ['Congés',[['Ouvrier','Du','Au','Motif','Remarque'],...PEOPLE.flatMap(p=>congeRecord(p.name).periods.map(x=>[p.name,x.d1,x.d2,x.type,x.note||'']))]],
+    ['Facturation clients',[['Client','Mode','Montant annuel HTVA','Mensualité HTVA'],...Object.values(ST.clients).filter(c=>c.mode).map(c=>[c.client,c.mode==='mensuel'?'Mensualités':'Au forfait (à la prestation)',c.mode==='mensuel'?+c.annuel||0:'',c.mode==='mensuel'?r2((+c.annuel||0)/12):''])]],
+    ['Prestations effectuées',[['Date','Client','Site','Poste','Ouvriers','Durée sur site (h)','Temps réalisé (h-homme)','Théorique (h)','Écart (h)','Noms','Remarque'],...Object.values(ST.prestations).sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(e=>{const ht=posteDef(e.pt,e.act).ht;return[e.date,e.client,e.site,e.act,e.n,e.duree,e.hh,r2(ht),r2((+e.hh||0)-ht),(e.ouvriers||[]).join(', '),e.note||'']})]],
     ['Machines',[['N°','Type','Modèle','Immatriculation','Affectée à','Zone','Remarque','Origine'],...machines().map(m=>[m.id,m.type,m.modele,m.immat||'',m.affecte||'',m.zone||'',m.remarque||'',m.base?'Classeur':'Ajoutée'])]],
     ['Réglages par site',[['Client','Site','CP corrigé','Équipe imposée','Connaissent le chantier','Activité','Machines'],...Object.values(ST.besoins).flatMap(b=>{const e=Object.entries(b.map||{});return(e.length?e:[['*',[]]]).map(([k,v])=>[b.client,b.site,b.cp||'',b.team||'',Array.isArray(b.connait)?b.connait.join(', '):'(classeur)',k==='*'?'Toutes':k,v.map(mName).join(', ')])})]]]);
     d&&saveFile('Chantiers_conges_machines.xlsx',d)}
@@ -1338,7 +1599,7 @@ function blocksPersonWeek(name,m){
   return out.concat(bFooter());
 }
 function blocksTeamDay(zone,d){
-  const ppl=ALLP().filter(p=>!zone||p.zone===zone);const abs=[],free=[],out=[bHeader('Équipe · '+dayTitle(d),zone||'Toutes les zones')];
+  const ppl=ALLP().filter(p=>(!zone||p.zone===zone)&&visibleIn(p,[d]));const abs=[],free=[],out=[bHeader('Équipe · '+dayTitle(d),zone||'Toutes les zones')];
   if(D.feries[d])return out.concat(bBox('Jour férié · '+D.feries[d],K.chip,K.mute),bFooter());
   let W=0,n=0;const rows=[];
   ppl.forEach(p=>{if(congeDays(p.name).has(d)){abs.push(p.name);return}const t=tour(p.name,d);if(!t){if(inContract(p,d))free.push(p.name);return}W+=t.work;n++;rows.push([p,t])});
@@ -1350,7 +1611,7 @@ function blocksTeamDay(zone,d){
   return out.concat(bFooter());
 }
 function blocksTeamWeek(zone,m){
-  const days=weekDays(m,false),ppl=ALLP().filter(p=>!zone||p.zone===zone);
+  const days=weekDays(m,false),ppl=ALLP().filter(p=>(!zone||p.zone===zone)&&visibleIn(p,days));
   const out=[bHeader('Planning de l’équipe · semaine '+wno(m),dlab(m)+' → '+dlabY(add(m,4))+(zone?' · '+zone:''))];
   out.push((x,y,W)=>{const cw=(W-80-190)/5;x.fillStyle=K.forest;x.fillRect(40,y,W-80,38);setF(x,17,600);x.fillStyle=K.white;x.fillText('Ouvrier',52,y+25);days.forEach((d,i)=>x.fillText(JOURS[dow(d)]+' '+dlab(d),40+190+i*cw+10,y+25));return 38});
   ppl.forEach((p,pi)=>out.push((x,y,W)=>{const cw=(W-80-190)/5;
@@ -1465,7 +1726,11 @@ function openShare(){
 // ---------- navigation ----------
 let rT;
 function render(){clearTimeout(rT);rT=setTimeout(renderNow,30)}
-function renderNow(){
+function renderNow(){try{renderNow2()}catch(e){console.error(e);showErr(e)}}
+function showErr(e){let b=$('#errBanner');if(!b){b=document.createElement('div');b.id='errBanner';b.className='warnbox';b.style.margin='12px max(4vw,16px)';document.querySelector('main').before(b)}
+  b.textContent='Erreur d’affichage : '+(e&&e.message||e)+' — envoyez ce message à Claude pour correction. Les données du classeur ne sont pas perdues.'}
+window.addEventListener('error',e=>showErr(e.error||e.message));window.addEventListener('unhandledrejection',e=>showErr(e.reason));
+function renderNow2(){
   if(!D)return;ensureCalc();fillPeople();
   $$('nav a').forEach(a=>a.toggleAttribute('aria-current',a.getAttribute('href')==='#'+S.tab));
   $$('main>section').forEach(s=>s.hidden=s.id!=='v-'+S.tab);
@@ -1473,7 +1738,7 @@ function renderNow(){
   if(S.tab==='conges')renderConges();
   if(S.tab==='equipe')renderEquipeTab();
   if(S.tab==='meteo')renderMeteo();
-  if(S.tab==='marche')renderMarche();
+  if(S.tab==='marche'){const a=document.activeElement;if(!(a&&a.matches&&a.matches('input,select,textarea')&&a.closest('#prBulk,#prForm,#mkBody table')))renderMarche()}
   if(S.tab==='interroger')renderQuery();
   if(S.tab==='chantiers'){renderChantiers();if(!$('#cForm').contains(document.activeElement))refreshAvail()}
   if(S.tab==='machines')renderMachines();
@@ -1482,10 +1747,11 @@ function route(){const h=location.hash.slice(1);S.tab=['planning','equipe','cong
 window.addEventListener('hashchange',route);
 $('#pSel').onchange=e=>{S.person=e.target.value;renderNow()};
 $('#zSel').onchange=e=>{S.zone=e.target.value;renderNow()};
-$('#wPrev').onclick=()=>{S.week=add(S.week,-7);renderNow()};
-$('#wNext').onclick=()=>{S.week=add(S.week,7);renderNow()};
-$('#wDate').onchange=e=>{if(e.target.value){S.week=mon(e.target.value);renderNow()}};
-$('#wBusy').onclick=()=>{const w=busyWeek(add(S.week,7),0.01);if(w){S.week=w;renderNow()}else toast('Plus rien de planifié après cette semaine')};
+$('#wPrev').onclick=()=>{stepPeriod(-1);renderNow()};
+$('#wNext').onclick=()=>{stepPeriod(1);renderNow()};
+$('#vSel').onchange=e=>{S.view=e.target.value;if(S.view==='day'&&!isWorkDay(S.day)){let d=S.day;while(dow(d)>4)d=add(d,1);setDay(d)}renderNow()};
+$('#wDate').onchange=e=>{if(e.target.value){setDay(e.target.value);renderNow()}};
+$('#wBusy').onclick=()=>{const w=busyWeek(add(S.week,7),0.01);if(w){setDay(w);if(S.view==='month')setDay(w);renderNow()}else toast('Plus rien de planifié après cette semaine')};
 $('#mPrev').onclick=()=>{S.mweek=add(S.mweek,-7);renderNow()};
 $('#mNext').onclick=()=>{S.mweek=add(S.mweek,7);renderNow()};
 ['qTxt','qZone','qAct','qWho','qMonth','qStat','qView'].forEach(id=>$('#'+id).addEventListener('input',()=>{qLimit=200;renderQuery()}));
@@ -1496,9 +1762,9 @@ $('#cFilt').onchange=renderChantiers;
 lsLoad();
 (window.__DATA?Promise.resolve(window.__DATA):fetch('data.json').then(r=>{if(!r.ok)throw new Error(r.status);return r.json()})).then(d=>{
   D=d;build();fillSelects();
-  S.week=busyWeek(mon(today),40)||mon(today);S.mweek=S.week;
+  S.week=busyWeek(mon(today),40)||mon(today);S.mweek=S.week;S.day=S.week<=today&&today<=add(S.week,4)?today:S.week;
   resetC();resetM();resetE();setSync();route();loadWeather();
-}).catch(e=>{console.error(e);$('#sync').textContent='Erreur';document.querySelector('main').innerHTML='<div class="card">Les données du classeur n’ont pas pu être chargées. Rechargez la page.</div>'});
+}).catch(e=>{console.error(e);$('#sync').textContent='Erreur';document.querySelector('main').innerHTML='<div class="card">Les données du classeur n’ont pas pu être chargées. Si vous avez ouvert la page depuis un fichier .zip, extrayez d’abord tout le contenu du zip (clic droit › Extraire tout), puis ouvrez index.html depuis le dossier extrait.</div>'});
 
 (async()=>{
   try{dl=window.claude?await claude.use('downloads'):null}catch(e){dl=null}
