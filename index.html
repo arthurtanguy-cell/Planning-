@@ -138,6 +138,9 @@ table.bulk tr.bad td{background:var(--warnbg)}table.bulk input.err{border-color:
 .lg{display:flex;flex-wrap:wrap;gap:6px 16px;margin:8px 0 12px;font-size:13px}.lg i{display:inline-block;width:16px;height:16px;border-radius:4px;margin-right:6px;vertical-align:-3px;border:1px solid var(--line)}
 .prop{border:1px solid #d98a00;background:light-dark(#fff8e8,#2b2412);border-radius:10px;padding:10px 12px;margin:8px}
 table.cal td{vertical-align:top}table.cal td.s-ok .h,table.cal td.s-inc .h{font-size:16px}
+.cons{font-size:13px;background:light-dark(#fff8e8,#2b2412);border-radius:8px;padding:6px 8px;margin:4px 0}.cons a{color:inherit}
+.cliGrid{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:16px}@media(max-width:800px){.cliGrid{grid-template-columns:minmax(0,1fr)}}
+.cliS{display:grid;gap:2px;text-align:left;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:var(--card,#fff);color:inherit;min-height:0}.cliS[aria-current]{border-color:var(--forest);box-shadow:inset 3px 0 0 var(--forest)}
 .crewc{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px;background:var(--card,#fff);cursor:pointer}.crewc.inc{border-color:var(--warn)}.crewc .h{font-weight:600;color:var(--forest2)}table.crewt{table-layout:fixed;width:100%;min-width:900px}table.crewt td.cell{white-space:normal}
 .mkS{display:grid;text-align:left;gap:2px;font-weight:400;padding:10px 12px}.mkS.on{border-color:var(--forest);box-shadow:inset 4px 0 0 var(--forest)}
 .planL{display:grid;gap:10px}.planI{display:grid;grid-template-columns:minmax(0,160px) minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px}
@@ -152,7 +155,7 @@ table.cal td{vertical-align:top}table.cal td.s-ok .h,table.cal td.s-inc .h{font-
 <div class="top">
   <div class="row">
     <div><h1>Planning des équipes</h1><small>Chantier Bruxelles · source : Chantier_Bruxelles_2026_AT_Planning_Equipe_v9.xlsx · planning recalculé</small></div>
-    <div class="acts"><span class="sync" id="sync">Chargement…</span><button id="rulesBtn">Règles de planification</button></div>
+    <div class="acts"><span class="sync" id="sync">Chargement…</span><button id="undoBtn" disabled aria-label="Annuler">↶ Annuler</button><button id="redoBtn" disabled aria-label="Rétablir">↷ Rétablir</button><button id="rulesBtn">Règles de planification</button></div>
   </div>
   <div class="grp" id="grp"><button data-g="aff">Affichage</button><button data-g="sai">Saisie de données</button></div>
   <nav id="nav">
@@ -161,6 +164,7 @@ table.cal td{vertical-align:top}table.cal td.s-ok .h,table.cal td.s-inc .h{font-
     <a href="#meteo" data-g="aff">Météo & intempéries</a>
     <a href="#interroger" data-g="aff">Interroger le tableau</a>
     <a href="#marche" data-g="sai">Marché & prestations</a>
+    <a href="#clients" data-g="sai">Clients & consignes</a>
     <a href="#equipe" data-g="sai">Équipe & saisonniers</a>
     <a href="#conges" data-g="sai">Congés</a>
     <a href="#chantiers" data-g="sai">Chantiers ponctuels</a>
@@ -183,7 +187,7 @@ table.cal td{vertical-align:top}table.cal td.s-ok .h,table.cal td.s-inc .h{font-
       <button data-exp="copy">Copier</button>
     </div>
     <div id="pHead"></div>
-    <div id="pBody"></div>
+    <div id="pNotice"></div><div id="pBody"></div><div id="pProp"></div>
   </section>
 
   <section id="v-equipe" hidden>
@@ -256,7 +260,7 @@ table.cal td{vertical-align:top}table.cal td.s-ok .h,table.cal td.s-inc .h{font-
 
   <section id="v-marche" hidden>
     <div class="split" style="grid-template-columns:minmax(0,320px) minmax(0,1fr)">
-      <div><input id="mkQ" type="search" placeholder="Chercher un client ou un site" style="margin-bottom:8px"><select id="mkBil" aria-label="Mode de facturation" style="margin-bottom:10px"><option value="">Tous les modes de facturation</option><option value="prestation">Au forfait (à la prestation)</option><option value="mensuel">Mensualités</option><option value="none">Mode non défini</option></select><button class="pri" id="mkNewC" style="margin-bottom:10px;width:100%">+ Nouveau client</button><div class="mkList" id="mkSites"></div></div>
+      <div><input id="mkQ" type="search" placeholder="Chercher un client ou un site" style="margin-bottom:8px"><select id="mkBil" aria-label="Mode de facturation" style="margin-bottom:10px"><option value="">Tous les modes de facturation</option><option value="prestation">Au forfait (à la prestation)</option><option value="mensuel">Mensualités</option><option value="none">Mode non défini</option></select><button class="pri" id="mkNewC" style="margin-bottom:10px;width:100%">+ Nouveau client</button><div class="mkList" id="mkSites"></div><div id="mkRem"></div></div>
       <div id="mkBody"></div>
     </div>
   </section>
@@ -311,6 +315,10 @@ table.cal td{vertical-align:top}table.cal td.s-ok .h,table.cal td.s-inc .h{font-
     </div>
   </section>
 
+  <section id="v-clients" hidden>
+    <p class="muted small" style="margin:0 0 12px">Consignes propres à chaque client : heure d’arrivée, badge, délai pour prévenir, contact et accès. Elles s’affichent dans la tournée, sur les feuilles imprimées et dans les alertes « À prévenir ». Les particularités d’un site remplacent celles du client.</p>
+    <div class="cliGrid"><div><input id="cliQ" type="search" placeholder="Chercher un client" style="margin-bottom:8px"><select id="cliF" aria-label="Filtrer" style="margin-bottom:10px"><option value="">Tous les clients</option><option value="badge">Badge requis</option><option value="notice">À prévenir à l’avance</option><option value="arr">Heure d’arrivée imposée</option><option value="none">Sans consigne</option></select><div id="cliList"></div></div><div id="cliBody"></div></div>
+  </section>
   <section id="v-machines" hidden>
     <div class="split">
       <form class="card f" id="mForm" autocomplete="off">
@@ -354,7 +362,7 @@ const MOISL=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août',
 const JOURS=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
 const MTYPES=['Véhicule','Camion / benne','Tracteur','Nacelle','Tondeuse autoportée','Tondeuse','Débroussailleuse','Taille-haie','Souffleur','Tronçonneuse','Broyeur','Scarificateur','Pulvérisateur','Remorque','Autre'];
 const ACTC={TON:'#2e8b57',FAU:'#2e8b57',SCA:'#2e8b57',DES:'#a07a2c',PUL:'#a07a2c',ENG:'#a07a2c',TAI:'#1f8a8a',ELA:'#1f8a8a',ENT:'#5b6b8c',NET:'#5b6b8c',DEC:'#5b6b8c',FEU:'#5b6b8c',ARR:'#5b6b8c',BEC:'#5b6b8c'};
-const DEF={calTol:10,cap:8,pct:50,start:'07:30',pause:30,vBxl:25,vRoute:60,detour:1.3,hop:5,same:8,inclTrav:true,fill:true,minDay:7,s1:4,s2:10,maxS:12,
+const DEF={calTol:10,cap:8,pct:50,start:'07:00',pause:30,vBxl:25,vRoute:60,detour:1.3,hop:5,same:8,inclTrav:true,fill:true,minDay:7,s1:4,s2:10,maxS:12,
   rainMm:10,rainH:4,vigMm:4,vigH:2,frostMax:0,frostMin:-2,snowCm:1,gust:75,gustVig:55,heat:35,heatVig:30};
 const PLANYEAR=2027;
 const SOLO=1.5;// pénalité : saisonnier seul sur un chantier
@@ -374,7 +382,7 @@ const slug=s=>String(s).normalize('NFD').replace(/[^\w]+/g,'_').replace(/^_|_$/g
 let toastT;const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2800)};
 
 let BASEPASS=[];let D,P=new Map(),SITES=new Map(),BASEP=[],PEOPLE=[],ZONES=[],CLIENTS=[];
-const ST={chantiers:{},machines:{},besoins:{},conges:{},tournees:{},params:{},personnel:{},realisations:{},marche:{},intemperies:{},plans:{},prestations:{},clients:{},sitesAdd:{},epingles:{}};
+const ST={chantiers:{},machines:{},besoins:{},conges:{},tournees:{},params:{},personnel:{},realisations:{},marche:{},intemperies:{},plans:{},prestations:{},clients:{},sitesAdd:{},epingles:{},prevenus:{}};
 const COLLS=Object.keys(ST);
 let mode='local',db=null,dl=null;
 const S={teamBy:'crew',view:'week',day:null,prMode:null,bulk:[],bulkPt:null,prEdit:null,mkYear:null,tab:'planning',person:'__team',zone:'',week:null,mweek:null,editC:null,editM:null,editE:null};
@@ -384,22 +392,48 @@ const PR=()=>({...DEF,...(ST.params.general||{})});
 const LSK='laurenty-planning-v1';
 function lsLoad(){try{const o=JSON.parse(localStorage.getItem(LSK)||'{}');for(const k in ST)Object.assign(ST[k],o[k]||{})}catch(e){}}
 function lsSave(){try{localStorage.setItem(LSK,JSON.stringify(ST))}catch(e){}}
+// ---------- annuler / rétablir (Ctrl+Z, Ctrl+Y) ----------
+const UNDO=[],REDO=[];let undoBusy=false;
+const UL={conges:'congé',chantiers:'chantier ponctuel',machines:'machine',besoins:'réglage de site',personnel:'équipe',realisations:'passage terminé',marche:'marché',intemperies:'intempéries',plans:'plan',prestations:'prestation',clients:'facturation',sitesAdd:'client ajouté',epingles:'passage déplacé',prevenus:'client prévenu',params:'règles',tournees:'premier chantier'};
+const cl=o=>o===undefined?undefined:JSON.parse(JSON.stringify(o));
+function rec(coll,id,next){if(undoBusy)return;const op={coll,id,prev:cl(ST[coll][id]),next:cl(next)},t=Date.now(),g=UNDO.at(-1);
+  if(g&&t-g.t<700){g.ops.push(op);g.t=t}else UNDO.push({t,ops:[op]});if(UNDO.length>100)UNDO.shift();REDO.length=0;undoUI()}
+function undoUI(){const u=$('#undoBtn'),r=$('#redoBtn');if(!u)return;u.disabled=!UNDO.length;r.disabled=!REDO.length;
+  u.title=UNDO.length?'Annuler : '+[...new Set(UNDO.at(-1).ops.map(o=>UL[o.coll]||o.coll))].join(', ')+' (Ctrl+Z)':'Rien à annuler';r.title=REDO.length?'Rétablir (Ctrl+Y)':'Rien à rétablir'}
+function applyOps(ops,key){undoBusy=true;try{ops.slice().reverse().forEach(o=>{const v=o[key];if(v===undefined)del(o.coll,o.id);else put(o.coll,o.id,cl(v))})}finally{undoBusy=false}}
+function undo(){const g=UNDO.pop();if(!g){toast('Rien à annuler');return}
+  undoBusy=true;try{g.ops.slice().reverse().forEach(o=>{if(o.prev===undefined)del(o.coll,o.id);else put(o.coll,o.id,cl(o.prev))})}finally{undoBusy=false}
+  REDO.push(g);undoUI();toast('Annulé : '+[...new Set(g.ops.map(o=>UL[o.coll]||o.coll))].join(', '))}
+function redo(){const g=REDO.pop();if(!g){toast('Rien à rétablir');return}
+  undoBusy=true;try{g.ops.forEach(o=>{if(o.next===undefined)del(o.coll,o.id);else put(o.coll,o.id,cl(o.next))})}finally{undoBusy=false}
+  UNDO.push(g);undoUI();toast('Rétabli')}
+document.addEventListener('input',e=>{if(e.target&&e.target.matches&&e.target.matches('input,textarea'))e.target._dirty=true},true);
+document.addEventListener('change',e=>{if(e.target)e.target._dirty=false},true);
+document.addEventListener('blur',e=>{if(e.target)e.target._dirty=false},true);
+document.addEventListener('keydown',e=>{if(!(e.ctrlKey||e.metaKey)||e.altKey)return;const k=e.key.toLowerCase();if(k!=='z'&&k!=='y')return;
+  const a=document.activeElement;if(a&&a.matches&&a.matches('input,textarea,[contenteditable]')&&a._dirty)return; // frappe en cours : annulation native du champ
+  if(a&&a.blur&&a.matches&&a.matches('input,textarea,select'))a.blur();
+  e.preventDefault();if(k==='y'||(k==='z'&&e.shiftKey))redo();else undo()});
 async function put(coll,id,obj){
-  ST[coll][id]=obj;render();
+  rec(coll,id,obj);ST[coll][id]=obj;render();
   if(mode==='db'){try{await db.collection(coll).doc(id).set(obj)}catch(e){toast(e&&e.code==='invalid_argument'?'Vous n’avez pas le droit de modifier ce planning':'Enregistrement impossible, réessayez')}}
   else lsSave();
 }
 async function del(coll,id){
-  delete ST[coll][id];render();
+  if(ST[coll][id]!==undefined)rec(coll,id,undefined);delete ST[coll][id];render();
   if(mode==='db'){try{await db.collection(coll).doc(id).delete()}catch(e){toast('Suppression impossible')}}else lsSave();
 }
 function setSync(){$('#sync').textContent=mode==='db'?'Enregistré en ligne · partagé avec l’équipe':'Enregistré dans ce navigateur'}
 
 // ---------- sites ajoutés dans l'interface ----------
 let SA_KEY='';
-function syncSites(){const k=JSON.stringify(ST.sitesAdd);if(k===SA_KEY||!D)return;SA_KEY=k;
-  D.sites=D.sites.filter(s=>!s.added);SITES.forEach((s,pt)=>{if(s.added)SITES.delete(pt)});
-  Object.values(ST.sitesAdd).forEach(a=>{if(!a||!a.pt)return;const s={acts:{},jard:[],hAn:0,passages:0,statutContrat:'Ajouté dans l’interface',ouvert:true,...a,added:true};D.sites.push(s);SITES.set(s.pt,s)});
+let REMC=new Set();
+const removedClients=()=>Object.values(ST.clients).filter(c=>c&&c.removed).map(c=>c.client).sort();
+function syncSites(){if(!D)return;const rem=removedClients(),k=JSON.stringify([ST.sitesAdd,rem]);if(k===SA_KEY)return;SA_KEY=k;
+  if(!D.sitesAll)D.sitesAll=D.sites.filter(s=>!s.added);REMC=new Set(rem);
+  SITES.forEach((s,pt)=>{if(s.added)SITES.delete(pt)});const add=[];
+  Object.values(ST.sitesAdd).forEach(a=>{if(!a||!a.pt)return;const s={acts:{},jard:[],hAn:0,passages:0,statutContrat:'Ajouté dans l’interface',ouvert:true,...a,added:true};add.push(s);SITES.set(s.pt,s)});
+  D.sites=D.sitesAll.concat(add).filter(s=>!REMC.has(s.client));
   CLIENTS=[...new Set(D.sites.map(s=>s.client).concat(D.annuels.map(a=>a.client)))].sort((a,b)=>a.localeCompare(b,'fr'));
   ZONES=[...new Set(ZONES.concat(D.sites.map(s=>s.zone)).filter(Boolean))];SLOC.clear&&SLOC.clear()}
 // ---------- index ----------
@@ -488,7 +522,7 @@ function effPassages(){
     for(let i=l.length;i<q;i++)arr.push(extra(pt,act,i,q,ht!=null?ht:(l[0]?l[0].hTh:0),l));
     alignSeason(arr,pt,act).forEach(p=>out.push(p))});
   Object.values(ST.marche).forEach(m=>Object.entries(m.postes||{}).forEach(([act,o])=>{if(byKey.has(m.pt+'|'+act)||o.removed)return;const arr=[];for(let i=0;i<(+o.qtt||0);i++)arr.push(extra(m.pt,act,i,+o.qtt,o.ht,[],o));alignSeason(arr,m.pt,act).forEach(p=>out.push(p))}));
-  return out;
+  return REMC.size?out.filter(p=>{const st=SITES.get(p.pt);return!(st&&REMC.has(st.client))}):out;
 }
 function km(a,b){const R=6371,t=Math.PI/180,dl=(b.lat-a.lat)*t,dn=(b.lon-a.lon)*t;const x=Math.sin(dl/2)**2+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
 let PRc=DEF;
@@ -511,7 +545,7 @@ function congeRecord(name){const r=ST.conges[slug(name)];if(r&&r.periods)return 
 
 // ---------- moteur de planification ----------
 let CALC=null,CALCKEY='';
-function calcKey(){return JSON.stringify([ST.sitesAdd,ST.epingles,Object.values(ST.prestations).map(x=>x.pt+'|'+x.act+'|'+x.date),ST.marche,ST.realisations,ST.intemperies,ST.chantiers,ST.besoins,ST.conges,ST.params.general||{},ST.personnel,Object.values(ST.machines).filter(m=>isNacelle(m)||m.removed).map(m=>m.id)])}
+function calcKey(){return JSON.stringify([Object.values(ST.clients).map(c=>(c.info&&c.info.arr)||''),Object.values(ST.besoins).map(b=>(b.info&&b.info.arr)||''),removedClients(),ST.sitesAdd,ST.epingles,Object.values(ST.prestations).map(x=>x.pt+'|'+x.act+'|'+x.date),ST.marche,ST.realisations,ST.intemperies,ST.chantiers,ST.besoins,ST.conges,ST.params.general||{},ST.personnel,Object.values(ST.machines).filter(m=>isNacelle(m)||m.removed).map(m=>m.id)])}
 const BXZ=new Set(['Bruxelles Sud + BW','Bruxelles Nord + Flandre','À définir','',undefined,null]);
 const zoneOk=(a,b)=>a===b||(BXZ.has(a)&&BXZ.has(b));
 // meilleure équipe de k : 1 fixe + saisonnier(s) de préférence, jamais uniquement des saisonniers si possible
@@ -572,8 +606,9 @@ function compute(){
     if(!(W>0)){res.set(p.n,{W:0,k:0,days:[],planned:0,status:'À chiffrer'});return}
     const b=ST.besoins['pt-'+p.pt]||{};
     const need=needs(p.pt,p.act);const nacelle=need.some(id=>nac.has(id));
-    const k=nacelle?3:(b.team&&b.team!=='auto'?+b.team:(W>CAP?2:1));
-    jobs.push({p,s,W,k,nacelle,loc:siteLoc(p.pt)});
+    const auto=!nacelle&&!(b.team&&b.team!=='auto');
+    const k=nacelle?3:(b.team&&b.team!=='auto'?+b.team:(W>CAP?(pr.fill!==false&&W<2*Math.min(CAP,+pr.minDay||7)?1:2):1));
+    jobs.push({p,s,W,k,nacelle,auto,loc:siteLoc(p.pt)});
   });
   jobs.sort((a,b)=>a.p.f2.localeCompare(b.p.f2)||(a.p.f1.localeCompare(b.p.f1)*-1)||b.W-a.W);
   const PIN=ST.epingles||{};jobs.sort((a,b)=>(PIN['n'+b.p.n]?1:0)-(PIN['n'+a.p.n]?1:0));
@@ -602,10 +637,11 @@ function compute(){
     }else{
       let rem=W,prev=[];
       const loop=(req=REQ)=>{for(const d of win){if(rem<=0.01)break;
+        const kk=(j.auto&&k===2&&pr.fill!==false&&rem<2*Math.min(CAP,+pr.minDay||7)-1e-6)?1:k;
         const o=optsFor(d,null,2).map(x=>({...x,c:x.c+(prev.includes(x.name)?-0.6:0)-x.free*0.05}));
-        const t=pickTeam(o,k,req);if(!t)continue;
-        const h=Math.min(Math.min(...t.t.map(x=>x.free)),rem/k);const team=t.t.map(x=>x.name);const unk=REQ&&!team.some(n=>KN.has(n));if(unk)r.unknown=true;
-        team.forEach(n=>place(n,d,loc,{k:'rec',n:p.n,h,team,loc,unknown:unk}));r.days.push({d,team,h,unknown:unk});rem-=h*k;prev=team}};
+        const t=pickTeam(o,kk,req);if(!t)continue;
+        const h=Math.min(Math.min(...t.t.map(x=>x.free)),rem/kk);const team=t.t.map(x=>x.name);const unk=REQ&&!team.some(n=>KN.has(n));if(unk)r.unknown=true;
+        team.forEach(n=>place(n,d,loc,{k:'rec',n:p.n,h,team,loc,unknown:unk}));r.days.push({d,team,h,unknown:unk});rem-=h*kk;prev=team}};
       loop();
       for(let a=0;rem>0.01&&a<k+1&&addVirtual(s.zone||p.zone,win[0]||p.f1);a++)loop();
       if(rem>0.01&&REQ)loop(false);
@@ -658,6 +694,26 @@ function ensureCalc(){syncSites();const k=calcKey();if(!CALC||k!==CALCKEY){const
 
 // ---------- tournées ----------
 const TOURS=new Map();
+// ---------- consignes par client / site ----------
+const toH=t=>{const[a,b]=String(t||'').split(':').map(Number);return isNaN(a)?0:a+(b||0)/60};
+function infoOf(pt){const st=SITES.get(pt)||{},c=((ST.clients[slug(st.client||'')]||{}).info)||{},o=((ST.besoins['pt-'+pt]||{}).info)||{};
+  const r={...c};if(o.arr)r.arr=o.arr;if(o.badge)r.badge=o.badge;if(o.badgeNote)r.badgeNote=o.badgeNote;r.siteNotes=o.notes||'';
+  r.has=!!(r.arr||r.badge==='oui'||+r.noticeDays>0||r.contactName||r.contactTel||r.acces||r.consignes||r.siteNotes);return r}
+function infoLine(pt){if(pt==null)return'';const i=infoOf(pt);if(!i.has)return'';const o=[];
+  if(i.arr)o.push('Arrivée '+i.arr);if(i.badge==='oui')o.push('Badge requis'+(i.badgeNote?' ('+i.badgeNote+')':''));
+  if(+i.noticeDays>0)o.push('Prévenir '+i.noticeDays+' j '+(i.noticeType==='cal'?'':'ouvrables ')+'avant'+(i.noticeWho?' ('+i.noticeWho+')':''));
+  if(i.contactName||i.contactTel)o.push('Contact : '+[i.contactName,i.contactTel].filter(Boolean).join(' '));
+  if(i.acces)o.push(i.acces);if(i.consignes)o.push(i.consignes);if(i.siteNotes)o.push(i.siteNotes);return o.join(' · ')}
+function noticeDate(d,n,type){n=Math.round(+n||0);if(type==='cal')return add(d,-n);let x=d;while(n>0){x=add(x,-1);if(dow(x)<5&&!D.feries[x])n--}return x}
+function noticeList(from,to){const C=ensureCalc(),m=new Map();
+  C.res.forEach((r,n)=>{const p=P.get(n);if(!p)return;const i=infoOf(p.pt);if(!(+i.noticeDays>0))return;
+    r.days.forEach(e=>{if(e.d<from||e.d>to)return;const key=slug(p.client)+'_'+e.d;let g=m.get(key);
+      if(!g){g={key,client:p.client,d:e.d,warnBy:noticeDate(e.d,i.noticeDays,i.noticeType),info:i,sites:new Set(),acts:new Set(),done:!!ST.prevenus[key]};m.set(key,g)}
+      g.sites.add(p.site);g.acts.add(p.act)})});
+  return[...m.values()].sort((a,b)=>a.warnBy.localeCompare(b.warnBy)||a.client.localeCompare(b.client))}
+function noticeHTML(list,withDate){return list.map(g=>{const late=!g.done&&g.warnBy<=today;
+  return`<div class="bar" style="margin:6px 0;gap:8px"><label class="grow small" style="display:flex;gap:8px;align-items:flex-start;font-weight:500"><input type="checkbox" data-prev="${esc(g.key)}" ${g.done?'checked':''} style="width:20px;min-height:20px;margin-top:2px"><span><b>${esc(g.client)}</b> · ${esc([...g.acts].join(', '))} · passage ${JOURS[dow(g.d)].slice(0,3)}. ${dlab(g.d)}<br><span class="${late?'':'muted'}" style="${late?'color:var(--warn);font-weight:600':''}">${g.done?'Prévenu':'À prévenir '+(late?'maintenant':'avant le '+dlab(g.warnBy))}${g.info.noticeWho?' · '+esc(g.info.noticeWho):''}${g.info.contactTel?' · '+esc(g.info.contactName||'')+' '+esc(g.info.contactTel):''}</span></span></label></div>`}).join('')}
+function bindNotice(root){root.querySelectorAll('[data-prev]').forEach(i=>i.onchange=()=>{const k=i.dataset.prev;if(i.checked)put('prevenus',k,{key:k,at:new Date().toISOString()});else del('prevenus',k)})}
 function itemInfo(it,name){
   if(it.k==='ponct'){const c=ST.chantiers[it.id]||{};return{act:(c.acts||[]).join(', ')||'Chantier ponctuel',client:c.client,site:c.site,adr:[c.adr,c.cp,c.ville].filter(Boolean).join(' '),mach:c.machines||[],partner:(it.team||[]).filter(x=>x!==name),code:''}}
   const p=P.get(it.n)||{},s=SITES.get(p.pt)||{};const code=Object.keys(D.codes).find(k=>D.codes[k]===p.act)||'';
@@ -671,10 +727,12 @@ function tour(name,d){
   c.items.forEach(it=>{const k=it.loc.key;let s=byKey.get(k);if(!s){s={key:k,loc:it.loc,items:[],work:0,team:1};byKey.set(k,s)}s.items.push(it);s.work+=it.h;s.team=Math.max(s.team,(it.team||[]).length)});
   const stops=[...byKey.values()];
   const tk=slug(name)+'_'+d,ch=ST.tournees[tk]&&ST.tournees[tk].first;
+  const startH=toH(C.pr.start||'07:00'),req=s=>Math.max(0,...s.items.map(it=>{const p=it.k==='rec'?P.get(it.n):null;return p?toH(infoOf(p.pt).arr):0}));
   let first=stops.find(s=>s.key===ch);
   if(!first){const tm=stops.filter(s=>s.team>1).sort((a,b)=>b.team-a.team||b.work-a.work);
     if(tm.length)first=tm[0];else{const cx=stops.reduce((a,s)=>a+s.loc.lat,0)/stops.length,cy=stops.reduce((a,s)=>a+s.loc.lon,0)/stops.length;
-      first=stops.reduce((a,s)=>km(s.loc,{lat:cx,lon:cy})>km(a.loc,{lat:cx,lon:cy})?s:a,stops[0])}}
+      first=stops.reduce((a,s)=>km(s.loc,{lat:cx,lon:cy})>km(a.loc,{lat:cx,lon:cy})?s:a,stops[0])}
+    const free=stops.filter(s=>req(s)<=startH+0.01);if(free.length&&free.length<stops.length&&req(first)>startH+0.01)first=free.find(s=>s.team>1)||free[0]}
   // plus proche voisin depuis le premier chantier, puis 2-opt (départ fixé)
   const order=[first],rest=stops.filter(s=>s!==first);
   while(rest.length){const l=order.at(-1);let bi=0,bt=1e9;rest.forEach((s,i)=>{const t=trav(l.loc,s.loc);if(t<bt){bt=t;bi=i}});order.push(rest.splice(bi,1)[0])}
@@ -682,10 +740,10 @@ function tour(name,d){
   for(let imp=true,g=0;imp&&g<50;g++){imp=false;for(let i=1;i<order.length-1;i++)for(let j=i+1;j<order.length;j++){
     const a=order[i-1],b=order[i],c2=order[j],e=order[j+1];const before=T(a,b)+(e?T(c2,e):0),after=T(a,c2)+(e?T(b,e):0);
     if(after<before-1e-9){order.splice(i,j-i+1,...order.slice(i,j+1).reverse());imp=true}}}
-  const pr=C.pr;const[hh,mm]=String(pr.start||'07:30').split(':').map(Number);let t=hh+(mm||0)/60,paused=false,travel=0,dist=0,work=0;
+  const pr=C.pr;const[hh,mm]=String(pr.start||'07:30').split(':').map(Number);let t=hh+(mm||0)/60,paused=false,travel=0,dist=0,work=0,wait=0;
   order.forEach((s,i)=>{if(i){const tt=T(order[i-1],s);s.legH=tt;s.legKm=roadKm(order[i-1].loc,s.loc);t+=tt;travel+=tt;dist+=s.legKm}else{s.legH=0;s.legKm=0}
-    s.arr=t;t+=s.work;work+=s.work;s.dep=t;if(!paused&&t>=12&&i<order.length-1&&pr.pause){t+=pr.pause/60;s.pause=true;paused=true}});
-  const out={stops:order,travel,dist,work,end:t,start:hh+(mm||0)/60,over:work+(pr.inclTrav?travel:0)>C.CAP+0.05,firstKey:first.key,chosen:!!ch};
+    const rq=req(s);if(rq>t){wait+=rq-t;t=rq}s.arr=t;t+=s.work;work+=s.work;s.dep=t;if(!paused&&t>=12&&i<order.length-1&&pr.pause){t+=pr.pause/60;s.pause=true;paused=true}});
+  const out={stops:order,travel,dist,work,wait,end:t,start:hh+(mm||0)/60,over:work+(pr.inclTrav?travel:0)>C.CAP+0.05,firstKey:first.key,chosen:!!ch};
   TOURS.set(key,out);return out;
 }
 function dayInfo(name,d){
@@ -762,11 +820,13 @@ function stopHTML(s,name,d){
   const ponct=s.items.some(i=>i.k==='ponct');const code=infos.find(x=>x.code)?.code;
   const mach=[...new Set(infos.flatMap(x=>x.mach))],partner=[...new Set(infos.flatMap(x=>x.partner))];
   const warn=s.team>1?syncWarn(name,d,s):[];
+  const inf=f.pt!=null?infoOf(f.pt):null,cons=inf&&inf.has?[inf.contactName||inf.contactTel?'Contact : '+[inf.contactName,inf.contactTel?`<a href="tel:${esc(String(inf.contactTel).replace(/[^+\d]/g,''))}">${esc(inf.contactTel)}</a>`:''].filter(Boolean).join(' '):'',inf.acces?esc(inf.acces):'',inf.consignes?esc(inf.consignes):'',inf.siteNotes?esc(inf.siteNotes):''].filter(Boolean):[];
   return`${s.legH?`<div class="leg">↓ ${fm(s.legH)} · ${Math.round(s.legKm)} km</div>`:''}
   <div class="it ${ponct?'ponct':''} ${s.items.every(i=>i.done)?'done':''}" style="${code&&!ponct?'--c:'+ACTC[code]:''}">
   <div class="t"><span class="hr">${clock(s.arr)} → ${clock(s.dep)}</span><span>${fh(s.work)}</span></div>
   <div><b>${esc(f.client)}</b>${f.site&&f.site!==f.client?' · '+esc(f.site):''}</div>
   ${f.adr?`<div class="muted">${esc(f.adr)}${s.loc.approx?' · localisation approximative':''}</div>`:''}
+  ${inf&&inf.has?`<div>${inf.arr?`<span class="tag w">Arrivée à ${esc(inf.arr)}</span>`:''}${inf.badge==='oui'?`<span class="tag w" title="${esc(inf.badgeNote||'')}">Badge requis${inf.badgeNote?' : '+esc(inf.badgeNote):''}</span>`:''}${+inf.noticeDays>0?`<span class="tag w">Prévenir ${esc(inf.noticeDays)} j ${inf.noticeType==='cal'?'':'ouvrables '}avant${inf.noticeWho?' ('+esc(inf.noticeWho)+')':''}</span>`:''}</div>${cons.length?`<div class="cons">${cons.join('<br>')}</div>`:''}`:''}
   <div class="sub">${infos.map(x=>`<div><span>${esc(x.act)}${x.passage?' · '+esc(x.passage):''}</span><span>${fh(x.it.h)}</span></div>`).join('')}</div>
   <div>${ponct?'<span class="tag m">Ponctuel</span>':''}${partner.length?`<span class="tag">${s.team===3?'Équipe de 3':'Binôme'} avec ${esc(partner.join(', '))}</span>`:''}${mach.map(m=>`<span class="tag m">${esc(mName(m))}</span>`).join('')}${warn.map(w=>`<span class="tag w">Décalage : ${esc(w)}</span>`).join('')}${s.items.some(i=>i.unknown)?'<span class="tag w">Personne ne connaît ce chantier</span>':''}${s.team>1&&!infos.some(x=>(x.it.team||[]).some(n=>(person(n)||{}).fixe))?'<span class="tag w">Sans homme fixe</span>':''}${s.items.some(i=>i.done)?'<span class="tag" style="background:var(--okbg);color:var(--forest2)">Réalisé</span>':''}${s.items.some(i=>i.pinned)?'<span class="tag">Déplacé à la main</span>':''}</div>
   <div class="acts2">${s.items.filter(i=>i.pinned).map(i=>`<button class="ghost" data-unpin="${esc(i.n)}">Libérer le passage</button>`).join('')}${infos.filter(x=>x.it.k==='rec').map(x=>`<button class="ghost" data-real="${esc(x.it.n)}" data-rd="${d}">${x.it.done||ST.realisations['n'+x.it.n]?'Réalisation ✓':'Terminé'}${infos.length>1?' · '+esc(x.act):''}</button>`).join('')}${f.pt!=null&&plansFor(f.pt).length?`<button class="ghost" data-plan="${f.pt}">Plan</button>`:''}${f.adr||s.loc.exact?`<a class="btnlink" href="${esc('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(stopAddr(s,name)))}" target="_blank" rel="noopener">Adresse</a>`:''}</div></div>
@@ -815,7 +875,7 @@ function proposals(name,d){
     const loc=siteLoc(pp.pt),i=c.stops.some(x=>x.key===loc.key)?0:insT(c,loc);
     const after=load+e.h+(C.pr.inclTrav?i:0);if(after>C.CAP+1e-6)return;
     const dRest=ld(dc)-e.h,emptied=dRest<0.01;if(!emptied&&dRest<C.MIN-0.01)return;
-    out.push({n,from:dn,fromD:e.d,h:e.h,after,emptied,client:pp.client,site:pp.site,act:pp.act,i,score:(emptied?10:0)+e.h-i})});
+    out.push({n,from:dn,fromD:e.d,h:e.h,after,emptied,client:pp.client,site:pp.site,act:pp.act,i,score:(emptied?3:0)+e.h*2-i})});
   return out.sort((a,b)=>b.score-a.score).slice(0,3);
 }
 function proposalsHTML(p,d,x){
@@ -850,6 +910,7 @@ function dayCard(p,d,withName,crew){
 }
 function bindCards(root){
   root.querySelectorAll('[data-first]').forEach(s=>s.onchange=()=>{(s.dataset.crew||s.dataset.p).split('|').forEach(n=>put('tournees',slug(n)+'_'+s.dataset.first,{person:n,date:s.dataset.first,first:s.value}))});
+  root.querySelectorAll('[data-solo]').forEach(b=>b.onclick=()=>{const k='pt-'+b.dataset.solo;put('besoins',k,{...(ST.besoins[k]||{}),team:'1'});toast('Équipe de 1 homme pour ce site. Ctrl+Z pour annuler')});
   root.querySelectorAll('[data-pin]').forEach(b=>b.onclick=()=>{const[n,dt,who]=b.dataset.pin.split('|');put('epingles','n'+n,{n,date:dt,person:who,updated:new Date().toISOString()});toast('Passage déplacé, planning recalculé')});
   root.querySelectorAll('[data-unpin]').forEach(b=>b.onclick=()=>{del('epingles','n'+b.dataset.unpin);toast('Passage libéré, replanifié automatiquement')});
   root.querySelectorAll('[data-pct]').forEach(b=>b.onclick=()=>{const[dt,who,h]=b.dataset.pct.split('|');S.tab='chantiers';location.hash='chantiers';renderNow();resetC();const f=F();f.d1.value=dt;f.d2.value=dt;f.h.value=h;refreshAvail();const cb=[...f.querySelectorAll('#cWho input')].find(i=>i.value===who);if(cb)cb.checked=true;teamWarn();f.client.focus()});
@@ -859,7 +920,33 @@ function bindCards(root){
   root.querySelectorAll('[data-cpr]').forEach(b=>b.onclick=async()=>{const t=tour(b.dataset.p,b.dataset.cpr);try{await navigator.clipboard.writeText(routeUrl(t,b.dataset.p));toast('Lien d’itinéraire copié : collez-le dans WhatsApp')}catch(e){toast('Copie refusée par le navigateur')}});
   root.querySelectorAll('[data-goday]').forEach(el=>el.onclick=()=>{if(el.dataset.p)S.person=el.dataset.p;S.view='day';setDay(el.dataset.goday);renderNow()});
 }
-function renderPlanning(){
+function renderPlanning(){renderPlanning0();try{renderNoticePanel();renderIncPanel()}catch(e){console.error(e)}}
+function renderNoticePanel(){const el=$('#pNotice');if(!el)return;
+  let a,b;if(S.view==='day')a=b=S.day;else if(S.view==='month'){const m=monthDays();a=m[0];b=m.at(-1)}else{a=S.week;b=add(S.week,6)}
+  let l=noticeList(a,b);if(S.person!=='__team'){const C=ensureCalc();const mine=new Set();C.cal.get(S.person)&&C.cal.get(S.person).forEach((c,d)=>c.items.forEach(it=>{const p=it.k==='rec'?P.get(it.n):null;if(p)mine.add(slug(p.client)+'_'+d)}));l=l.filter(g=>mine.has(g.key))}
+  l=l.filter(g=>g.d>=today);
+  el.innerHTML=l.length?`<div class="card" style="margin:0 0 14px;border-color:#d98a00"><h3 style="margin:0 0 4px">À prévenir à l’avance (${l.filter(g=>!g.done).length} sur ${l.length})</h3>${noticeHTML(l)}</div>`:'';bindNotice(el)}
+function renderIncPanel(){
+  const el=$('#pProp');if(!el)return;const C=ensureCalc();
+  let days;if(S.view==='day')days=[S.day];else if(S.view==='month')days=monthDays();else days=allDays(S.week,add(S.week,6));
+  days=days.filter(d=>d>=today&&isWorkDay(d));
+  const ppl=S.person==='__team'?ALLP().filter(p=>(!S.zone||p.zone===S.zone)&&visibleIn(p,days)):[person(S.person)].filter(Boolean);
+  const list=[];ppl.forEach(p=>days.forEach(d=>{const q=dayStatus(p,d);if(q.k==='inc')list.push({p,d,q})}));
+  if(!list.length){el.innerHTML=`<div class="card" style="margin-top:14px"><b>Aucune journée incomplète sur cette période.</b></div>`;return}
+  // une équipe de plusieurs hommes n'apparaît qu'une fois
+  const seen=new Set(),rows=[];list.sort((a,b)=>a.d.localeCompare(b.d)||a.p.name.localeCompare(b.p.name));
+  list.forEach(x=>{const c=C.cal.get(x.p.name).get(x.d);const rec=(c?c.items:[]).filter(i=>i.k==='rec'&&(i.team||[]).length>1);
+    if(rec.length){const key=x.d+'|'+rec.map(i=>i.n).sort().join(',');if(seen.has(key))return;seen.add(key);rows.push({...x,team:rec})}else rows.push(x)});
+  const shown=rows.slice(0,12);
+  el.innerHTML=`<div class="card" style="margin-top:14px"><div class="bar" style="margin-bottom:6px"><h3 class="grow" style="margin:0">Propositions pour compléter les journées (${rows.length})</h3></div>
+   <p class="small muted" style="margin:0 0 8px">Journées de moins de ${C.MIN} h sur la période affichée. « Avancer ici » rapproche un passage d’un autre jour, sans sortir de sa fenêtre.</p>
+   ${shown.map(x=>{const head=`<div class="bar" style="margin:0 8px;gap:8px"><b class="grow">${esc(x.team?x.team.length&&C.cal.get(x.p.name).get(x.d).items.filter(i=>(i.team||[]).length>1).flatMap(i=>i.team).filter((v,i,a)=>a.indexOf(v)===i).join(' + '):x.p.name)} · ${JOURS[dow(x.d)].slice(0,3)}. ${dlab(x.d)}</b><button class="sm ghost" data-goday="${x.d}" data-p="${esc(x.p.name)}">Ouvrir la journée</button></div>`;
+     if(x.team){const it=x.team[0],pp=P.get(it.n)||{};return`<div style="margin:10px 0">${head}<div class="prop"><b>Équipe de ${it.team.length} : ${fh(x.q.l)} par homme, il manque ${fh(x.q.miss)}.</b><div class="small" style="margin:4px 0">Un seul homme sur ce chantier remplirait mieux la journée.</div><button class="sm" data-solo="${esc(pp.pt)}">Mettre 1 seul homme sur ${esc(pp.client||'ce site')}</button></div></div>`}
+     return`<div style="margin:10px 0">${head}${proposalsHTML(x.p,x.d,x.q)}</div>`}).join('')}
+   ${rows.length>shown.length?`<div class="small muted">+ ${rows.length-shown.length} autres journées : changez de jour ou de période pour les voir.</div>`:''}</div>`;
+  bindCards(el);
+}
+function renderPlanning0(){
   if(!S.day)S.day=S.week;S.week=mon(S.day);
   $('#wLbl').textContent=periodLabel();$('#wDate').value=S.day;$('#vSel').value=S.view;
   $('#pSel').value=S.person;$('#zSel').value=S.zone;$('#zSel').hidden=S.person!=='__team';
@@ -982,7 +1069,7 @@ function openRules(){
   <div class="two"><label>Heures effectives par homme et par jour<input type="number" name="cap" step="0.25" min="4" max="12" value="${esc(p.cap)}"></label>
   <label>Temps réel visé (% des heures du contrat)<input type="number" name="pct" min="10" max="150" value="${esc(p.pct)}"></label></div>
   <label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="inclTrav" ${p.inclTrav?'checked':''} style="width:20px;min-height:20px"> Les trajets entre chantiers sont comptés dans ces heures</label>
-  <div class="two"><label>Heure de départ<input type="time" name="start" value="${esc(p.start)}"></label><label>Pause de midi (min)<input type="number" name="pause" min="0" max="90" value="${esc(p.pause)}"></label></div>
+  <div class="two"><label>Arrivée sur le premier chantier<input type="time" name="start" value="${esc(p.start)}"></label><label>Pause de midi (min)<input type="number" name="pause" min="0" max="90" value="${esc(p.pause)}"></label></div>
   <div class="two"><label>Vitesse en Région bruxelloise (km/h)<input type="number" name="vBxl" min="10" max="60" value="${esc(p.vBxl)}"></label><label>Vitesse hors Bruxelles (km/h)<input type="number" name="vRoute" min="20" max="100" value="${esc(p.vRoute)}"></label></div>
   <div class="two"><label>Détour route / vol d’oiseau<input type="number" name="detour" step="0.05" min="1" max="2" value="${esc(p.detour)}"></label><label>Chargement / stationnement par trajet (min)<input type="number" name="hop" min="0" max="30" value="${esc(p.hop)}"></label></div>
   <div class="two"><label>Saison des saisonniers : du mois<input type="number" name="s1" min="1" max="12" value="${esc(p.s1)}"></label><label>au mois<input type="number" name="s2" min="1" max="12" value="${esc(p.s2)}"></label></div>
@@ -1000,7 +1087,7 @@ function openRules(){
   <h3 style="margin-top:6px">Adresses des chantiers</h3>
   <p class="small muted" style="margin:0">${Object.values(ST.besoins).filter(b=>b.geo).length} sites localisés à l’adresse, les autres au centre de leur commune. La localisation automatique fonctionne dans le site autonome ; la version en ligne peut importer le fichier de coordonnées qu’il exporte.</p>
   <div class="bar" style="margin:0"><button type="button" id="geoAll">Localiser les adresses</button><button type="button" class="ghost" id="geoExp">Exporter les coordonnées</button><label class="btnlink" style="cursor:pointer">Importer des coordonnées<input type="file" id="geoImp" accept=".json,application/json" hidden></label></div>
-  <div class="card small" style="background:var(--bg)"><b>Composition des équipes :</b> 1 homme si le passage tient dans la journée ; binôme s’il dépasse ${esc(p.cap)} h (réparti sur plusieurs jours si besoin) ; équipe de 3 dès qu’une nacelle est nécessaire. Un binôme associe de préférence un homme fixe et un saisonnier ; deux fixes seulement s’il n’y a pas de saisonnier disponible, jamais deux saisonniers si un fixe peut venir. Quand les fixes ne suffisent pas, un saisonnier à recruter est ajouté (pendant la saison). La taille peut être imposée site par site (Interroger › Vue sites).<br><b>Ordre de priorité :</b> chaque équipe comprend au moins un ouvrier qui connaît le chantier (sinon le passage est décalé, et signalé en dernier recours) ; ensuite jardiniers attitrés au site, puis même zone, puis autre zone, puis renforts à engager. Les chantiers proches sont regroupés sur la même journée.<br><b>Localisation :</b> chaque site est placé au centre de sa commune (code postal) ; corrigez le code postal d’un site dans sa fiche si l’adresse du classeur est celle du siège.</div>
+  <div class="card small" style="background:var(--bg)"><b>Composition des équipes :</b> 1 homme si le passage tient dans la journée ; binôme seulement si chaque homme a une journée complète (sinon 1 seul homme sur plusieurs jours) ; équipe de 3 dès qu’une nacelle est nécessaire. Un binôme associe de préférence un homme fixe et un saisonnier ; deux fixes seulement s’il n’y a pas de saisonnier disponible, jamais deux saisonniers si un fixe peut venir. Quand les fixes ne suffisent pas, un saisonnier à recruter est ajouté (pendant la saison). La taille peut être imposée site par site (Interroger › Vue sites).<br><b>Ordre de priorité :</b> chaque équipe comprend au moins un ouvrier qui connaît le chantier (sinon le passage est décalé, et signalé en dernier recours) ; ensuite jardiniers attitrés au site, puis même zone, puis autre zone, puis renforts à engager. Les chantiers proches sont regroupés sur la même journée.<br><b>Localisation :</b> chaque site est placé au centre de sa commune (code postal) ; corrigez le code postal d’un site dans sa fiche si l’adresse du classeur est celle du siège.</div>
   <div class="bar" style="margin:0"><button class="pri" type="submit">Enregistrer et recalculer</button><button type="button" class="ghost" id="rReset">Valeurs par défaut</button></div></form>`;
   $('#ov').classList.add('on');$('#ovX').onclick=closeOv;
   $('#rForm').onsubmit=e=>{e.preventDefault();const f=e.target;const o={};['minDay','calTol','cap','pct','pause','vBxl','vRoute','detour','hop','same','s1','s2','maxS','rainMm','rainH','vigMm','vigH','frostMax','frostMin','gust','gustVig','snowCm','heat'].forEach(k=>o[k]=+f[k].value);o.start=f.start.value||'07:30';o.inclTrav=f.inclTrav.checked;o.fill=f.fill.checked;put('params','general',o);closeOv();toast('Règles enregistrées, planning recalculé')};
@@ -1088,7 +1175,7 @@ function marcheRows(pt,year){
 const ecart=(real,theo)=>{if(!theo)return'<span class="muted">—</span>';const d=real-theo,pc=Math.round(d/theo*100);return`<span style="font-weight:600;color:${d>0.01?'var(--warn)':'var(--forest2)'}">${d>0?'+':''}${fh(d)} (${pc>0?'+':''}${pc} %)</span>`};
 // ---------- saisie groupée des prestations ----------
 async function putMany(coll,docs){
-  docs.forEach(d=>{ST[coll][d.id]=d});render();
+  docs.forEach(d=>{rec(coll,d.id,d);ST[coll][d.id]=d});render();
   if(mode==='db'){let ko=0;for(const d of docs){try{await db.collection(coll).doc(d.id).set(d)}catch(e){ko++}}if(ko)toast(ko+' ligne(s) non enregistrée(s) en ligne, réessayez')}
   else lsSave();
 }
@@ -1195,12 +1282,14 @@ function renderMarche(){
   $('#mkSites').innerHTML=sites.slice(0,300).map(s=>{const rows=marcheRows(s.pt,Y),tot=rows.reduce((a,r)=>a+r.qtt,0),dn=rows.reduce((a,r)=>a+r.done,0);
     return`<button class="mkS ${s.pt===S.mkPt?'on':''}" data-pt="${s.pt}"><b>${esc(s.client)}</b><span class="muted small">${esc(s.site)}</span><span class="bar2"><i style="width:${tot?Math.min(100,dn/tot*100):0}%"></i></span><span class="small">${dn} / ${tot} passages réalisés en ${Y}</span>${cliDoc(s.client).mode?`<span class="pill ${cliDoc(s.client).mode==='mensuel'?'ok':'o'}" style="justify-self:start">${cliDoc(s.client).mode==='mensuel'?'Mensualités':'Au forfait'}</span>`:''}</button>`}).join('')||'<p class="muted">Aucun site.</p>';
   $$('.mkS').forEach(b=>b.onclick=()=>{S.mkPt=+b.dataset.pt;renderMarche()});
+  {const rem=removedClients();$('#mkRem').innerHTML=rem.length?`<details style="margin-top:12px"><summary class="small" style="cursor:pointer;font-weight:600">Clients supprimés (${rem.length})</summary>${rem.map(c=>`<div class="bar" style="margin:6px 0;gap:8px"><span class="grow small">${esc(c)}</span><button class="sm ghost" data-restore="${esc(c)}">Restaurer</button></div>`).join('')}</details>`:'';
+    $$('[data-restore]').forEach(b=>b.onclick=()=>{const c=b.dataset.restore;put('clients',slug(c),{...cliDoc(c),client:c,removed:false});toast('Client restauré')})}
   const pt=S.mkPt,s=SITES.get(pt);if(!s){$('#mkBody').innerHTML='';return}
   const rows=marcheRows(pt,Y),C=ensureCalc(),T=k=>rows.reduce((a,r)=>a+r[k],0),pct=+PR().pct||50,edit=Y===PLANYEAR,BIL=cliDoc(s.client).mode||'';
   const years=[+today.slice(0,4),PLANYEAR].filter((v,i,a)=>a.indexOf(v)===i);
   const pres=prestaOf(pt,Y);
   $('#mkBody').innerHTML=`<div class="bar"><div class="grow"><h2>${esc(s.client)}</h2><div class="muted">${esc(s.site)} · ${esc([s.adr,s.cp,s.ville].filter(Boolean).join(' '))}${s.fin?' · fin de contrat '+dlabY(s.fin):''}</div></div>
-   <div class="chips">${years.map(y=>`<label><input type="radio" name="mkY" value="${y}" ${y===Y?'checked':''}>${y}</label>`).join('')}</div><button class="ghost" id="mkSite">Fiche du site</button>${s.added?'<button class="ghost" id="mkDel">Supprimer ce site</button>':''}</div>
+   <div class="chips">${years.map(y=>`<label><input type="radio" name="mkY" value="${y}" ${y===Y?'checked':''}>${y}</label>`).join('')}</div><button class="ghost" id="mkSite">Fiche du site</button>${s.added?'<button class="ghost" id="mkDel">Supprimer ce site</button>':''}<button class="ghost" id="mkDelC">Supprimer le client</button></div>
   ${billingCard(s,pt,Y)}
   <div class="kpis"><div class="kpi"><div class="num">${T('qtt')}</div><span>passages compris dans le marché</span></div><div class="kpi"><div class="num">${T('done')}</div><span>réalisés en ${Y}</span></div><div class="kpi"><div class="num">${T('rest')}</div><span>restant à réaliser</span></div>
    <div class="kpi"><div class="num">${fh(T('hReal'))}</div><span>temps réalisé (heures-homme)</span></div><div class="kpi"><div class="num">${fh(T('hTheo'))}</div><span>temps théorique de ces passages</span></div><div class="kpi"><div class="num" style="font-size:22px">${ecart(T('hReal'),T('hTheo'))}</div><span>écart réalisé / théorique</span></div></div>
@@ -1238,6 +1327,7 @@ function renderMarche(){
   <div class="scroll"><table class="stack"><thead><tr><th>Poste</th><th>Passage</th><th>Date(s)</th><th>Équipe</th><th>Statut</th><th></th></tr></thead><tbody>${rows.flatMap(r=>r.ps.map(p=>{const x=C.res.get(p.n)||{days:[]};const rl=ST.realisations['n'+p.n];
     return`<tr><td>${esc(p.act)}</td><td>${esc(p.passage)}${p.ajout?' <span class="pill o">ajouté</span>':''}${p.cale?`<div class="small muted">calé sur ${dlabY(p.cale)}</div>`:''}</td><td class="small">${x.days.length?[...new Set(x.days.map(y=>dlab(y.d)))].slice(0,4).join(', ')+(x.days.length>4?'…':''):`fenêtre ${dlab(p.f1)} → ${dlab(p.f2)}`}</td><td class="small">${esc([...new Set(x.days.flatMap(y=>y.team))].join(' + '))}</td><td><span class="pill ${x.status==='Réalisé'||(x.status||'').startsWith('Déjà')?'ok':(x.status||'').startsWith('Planifié')?'':'w'}">${esc(x.status||'')}</span>${rl&&rl.note?`<div class="small muted">${esc(rl.note)}</div>`:''}</td><td>${p.hors?'':`<button class="sm" data-real="${esc(p.n)}">${rl?'Modifier':'Marquer réalisé'}</button>`}</td></tr>`})).join('')||'<tr><td colspan="6" class="muted">Aucun passage planifié pour cette année.</td></tr>'}</tbody></table></div>`;
   $('#mkSite').onclick=()=>openSite(pt);
+  $('#mkDelC').onclick=e=>{const b=e.target;if(!b.dataset.ok){b.dataset.ok=1;b.textContent='Confirmer : supprimer '+s.client+' ('+D.sites.filter(x=>x.client===s.client).length+' site'+(D.sites.filter(x=>x.client===s.client).length>1?'s':'')+')';return}setCli({removed:true});S.mkPt=null;toast('Client supprimé du planning. Ctrl+Z pour annuler')};
   $('#mkDel')&&($('#mkDel').onclick=e=>{const b=e.target;if(!b.dataset.ok){b.dataset.ok=1;b.textContent='Confirmer la suppression';return}del('sitesAdd','pt'+pt);del('marche','pt-'+pt);S.mkPt=null;toast('Site supprimé')});
   $$('[name=mkY]').forEach(i=>i.onchange=()=>{S.mkYear=+i.value;S.prMode=S.mkYear>=PLANYEAR?'one':'bulk';renderMarche()});
   const setPoste=(act,patch)=>{const m=ST.marche['pt-'+pt]||{pt,client:s.client,site:s.site,postes:{}};const po={...(m.postes||{})};po[act]={...(po[act]||{}),...patch};put('marche','pt-'+pt,{...m,postes:po,updated:new Date().toISOString()})};
@@ -1462,7 +1552,7 @@ function openSite(pt){
   ${Array.isArray(b.connait)?'<p style="margin:8px 0 0"><button class="sm ghost" id="ovKnReset">Revenir à la liste du classeur</button></p>':''}
   <table><thead><tr><th>Activité</th><th class="r">Passages (QTT)</th><th class="r">Heures / passage</th></tr></thead><tbody>${acts.map(a=>`<tr><td>${esc(a)}</td><td class="r">${esc(s.acts[a][0])}</td><td class="r">${fh(s.acts[a][1])}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">Aucune activité chiffrée</td></tr>'}</tbody></table>
   <div class="two" style="margin-top:16px"><label class="f" style="gap:4px;font-size:14px;font-weight:600">Code postal du lieu d’intervention<input id="ovCp" inputmode="numeric" value="${esc(b.cp||s.cp||'')}" placeholder="ex. 1140"><span class="small muted" style="font-weight:400">Placé à ${esc(loc.cp?D.zones[String(loc.cp)]?.[0]||loc.cp:'(zone, approximatif)')}. À corriger si l’adresse du classeur est celle du siège.</span></label>
-  <label class="f" style="gap:4px;font-size:14px;font-weight:600">Taille de l’équipe<select id="ovTeam"><option value="auto">Automatique (1, binôme si > journée, 3 si nacelle)</option><option value="1" ${b.team=='1'?'selected':''}>1 homme</option><option value="2" ${b.team=='2'?'selected':''}>Binôme</option><option value="3" ${b.team=='3'?'selected':''}>3 hommes</option></select></label></div>
+  <label class="f" style="gap:4px;font-size:14px;font-weight:600">Taille de l’équipe<select id="ovTeam"><option value="auto">Automatique (1 homme, binôme si le chantier remplit deux journées, 3 si nacelle)</option><option value="1" ${b.team=='1'?'selected':''}>1 homme</option><option value="2" ${b.team=='2'?'selected':''}>Binôme</option><option value="3" ${b.team=='3'?'selected':''}>3 hommes</option></select></label></div>
   <div class="two" style="margin-top:12px"><label class="f" style="gap:4px;font-size:14px;font-weight:600">Coordonnées GPS (latitude, longitude)<input id="ovGeo" value="${b.geo?esc(r2(b.geo.lat*1e4)/1e4+', '+r2(b.geo.lon*1e4)/1e4):''}" placeholder="ex. 50.8466, 4.3528"><span class="small muted" style="font-weight:400">${b.geo?'Trajets calculés depuis cette position ('+esc(b.geo.src||'')+').':'Vide : centre de la commune.'} Dans Google Maps, clic droit sur le lieu puis copier les coordonnées.</span></label>
   <div class="f" style="gap:6px;align-content:start"><a class="btnlink" target="_blank" rel="noopener" href="${esc('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(addrOf({...s,cp:b.cp||s.cp})+', Belgique'))}">Voir l’adresse sur Google Maps</a><button type="button" id="ovLoc">Localiser cette adresse</button></div></div>
   <h3 style="margin:18px 0 6px">Plans du site</h3>
@@ -1736,7 +1826,7 @@ function blocksPersonWeek(name,m){
     if(!t){out.push(bDayHead(dayTitle(d),'Rien de planifié'));return}
     out.push(bDayHead(dayTitle(d),`${hTxt(t.work)} · trajet ${fm(t.travel)} · fin ${clock(t.end)}`,t.over));
     t.stops.forEach(s=>{const inf=s.items.map(it=>itemInfo(it,name)),f=inf[0],pa=[...new Set(inf.flatMap(i=>i.partner))],ma=[...new Set(inf.flatMap(i=>i.mach))].map(mName);
-      out.push(bRow([clock(s.arr),f.client+(f.site&&f.site!==f.client?' · '+f.site:''),[inf.map(i=>i.act).join(', '),f.adr,pa.length?'avec '+pa.join(', '):'',ma.join(', '),s.items.some(i=>i.unknown)?'personne ne connaît ce chantier':''].filter(Boolean).join(' · '),hTxt(s.work)],{ponct:s.items.some(i=>i.k==='ponct')}))})});
+      out.push(bRow([clock(s.arr),f.client+(f.site&&f.site!==f.client?' · '+f.site:''),[inf.map(i=>i.act).join(', '),f.adr,infoLine(f.pt),pa.length?'avec '+pa.join(', '):'',ma.join(', '),s.items.some(i=>i.unknown)?'personne ne connaît ce chantier':''].filter(Boolean).join(' · '),hTxt(s.work)],{ponct:s.items.some(i=>i.k==='ponct')}))})});
   return out.concat(bFooter());
 }
 function blocksTeamDay(zone,d){
@@ -1748,7 +1838,7 @@ function blocksTeamDay(zone,d){
   out.push(bStats([{v:String(n),l:'personnes au travail'},{v:hTxt(W),l:'de travail planifié'},{v:String(abs.length),l:'absents'}]));
   rows.forEach(([p,t,cn,cm])=>{out.push(bDayHead(cn,`${p.zone||''} · ${hTxt(t.work)} · fin ${clock(t.end)}`,t.over));
     t.stops.forEach(s=>{const inf=s.items.map(it=>itemInfo(it,p.name)),f=inf[0],pa=[...new Set(inf.flatMap(i=>i.partner))].filter(x=>!cm.includes(x));
-      out.push(bRow([clock(s.arr),f.client+(f.site&&f.site!==f.client?' · '+f.site:''),[inf.map(i=>i.act).join(', '),f.adr,pa.length?'avec '+pa.join(', '):''].filter(Boolean).join(' · '),hTxt(s.work)],{ponct:s.items.some(i=>i.k==='ponct')}))})});
+      out.push(bRow([clock(s.arr),f.client+(f.site&&f.site!==f.client?' · '+f.site:''),[inf.map(i=>i.act).join(', '),f.adr,infoLine(f.pt),pa.length?'avec '+pa.join(', '):''].filter(Boolean).join(' · '),hTxt(s.work)],{ponct:s.items.some(i=>i.k==='ponct')}))})});
   if(abs.length)out.push(bNote('Absents : '+abs.join(', ')));if(free.length)out.push(bNote('Sans chantier ce jour : '+free.join(', ')));
   return out.concat(bFooter());
 }
@@ -1887,8 +1977,39 @@ function renderNow2(){
   if(S.tab==='interroger')renderQuery();
   if(S.tab==='chantiers'){renderChantiers();if(!$('#cForm').contains(document.activeElement))refreshAvail()}
   if(S.tab==='machines')renderMachines();
+  if(S.tab==='clients'){const a=document.activeElement;if(!(a&&a.matches&&a.matches('input,select,textarea')&&a.closest('#cliBody')))renderClients()}
 }
+$('#undoBtn').onclick=undo;$('#redoBtn').onclick=redo;undoUI();
 $$('#grp button').forEach(b=>b.onclick=()=>{location.hash=b.dataset.g==='aff'?'planning':'marche'});
+function renderClients(){
+  const q=($('#cliQ').value||'').toLowerCase(),f=$('#cliF').value;
+  const all=[...new Set(D.sites.map(x=>x.client))].sort((a,b)=>a.localeCompare(b,'fr'));
+  const I=c=>(ST.clients[slug(c)]||{}).info||{};
+  const has=c=>{const i=I(c);return i.arr||i.badge==='oui'||+i.noticeDays>0||i.contactName||i.contactTel||i.acces||i.consignes};
+  const list=all.filter(c=>(!q||c.toLowerCase().includes(q))&&(!f||(f==='badge'&&I(c).badge==='oui')||(f==='notice'&&+I(c).noticeDays>0)||(f==='arr'&&I(c).arr)||(f==='none'&&!has(c))));
+  if(!S.cliSel||!all.includes(S.cliSel))S.cliSel=list[0]||all[0];
+  $('#cliList').innerHTML=list.slice(0,300).map(c=>{const i=I(c);return`<button class="cliS" data-c="${esc(c)}" ${c===S.cliSel?'aria-current="true"':''}><b>${esc(c)}</b><span class="small muted">${[i.arr?'Arrivée '+i.arr:'',i.badge==='oui'?'Badge':'',+i.noticeDays>0?'Prévenir '+i.noticeDays+' j':''].filter(Boolean).join(' · ')||'Aucune consigne'}</span></button>`}).join('')||'<p class="muted small">Aucun client.</p>';
+  const c=S.cliSel;if(!c){$('#cliBody').innerHTML='';return}
+  const i=I(c),sites=D.sites.filter(x=>x.client===c);
+  $('#cliBody').innerHTML=`<form class="card f" id="cliForm" autocomplete="off"><h2 style="margin:0">${esc(c)}</h2>
+   <div class="two"><label>Heure d’arrivée sur site<input type="time" name="arr" value="${esc(i.arr||'')}"><span class="small muted">Vide = ${esc(PR().start)} (règle générale)</span></label>
+   <label>Badge nécessaire<select name="badge"><option value="">Non précisé</option><option value="non" ${i.badge==='non'?'selected':''}>Non</option><option value="oui" ${i.badge==='oui'?'selected':''}>Oui</option></select></label></div>
+   <label>Badge : où et comment l’obtenir<input name="badgeNote" value="${esc(i.badgeNote||'')}" placeholder="Ex. à l’accueil, pièce d’identité, demandé la veille"></label>
+   <div class="two"><label>Prévenir à l’avance (jours)<input type="number" name="noticeDays" min="0" step="1" value="${esc(i.noticeDays||'')}" placeholder="0 = pas de préavis"></label>
+   <label>Type de jours<select name="noticeType"><option value="ouv" ${i.noticeType!=='cal'?'selected':''}>Jours ouvrables</option><option value="cal" ${i.noticeType==='cal'?'selected':''}>Jours calendrier</option></select></label></div>
+   <label>Prévenir qui, et comment<input name="noticeWho" value="${esc(i.noticeWho||'')}" placeholder="Ex. facility manager, par mail"></label>
+   <div class="two"><label>Contact sur site<input name="contactName" value="${esc(i.contactName||'')}"></label><label>Téléphone<input name="contactTel" inputmode="tel" value="${esc(i.contactTel||'')}"></label></div>
+   <label>Accès, parking, clés<textarea name="acces" rows="2">${esc(i.acces||'')}</textarea></label>
+   <label>Consignes (sécurité, équipement, déchets…)<textarea name="consignes" rows="3">${esc(i.consignes||'')}</textarea></label>
+   <p class="small muted" style="margin:0">Enregistré automatiquement. Ctrl+Z annule la dernière modification.</p></form>
+   <div class="card" style="margin-top:14px"><h3 style="margin-top:0">Particularités par site</h3><p class="small muted" style="margin:0 0 8px">Remplacent les consignes du client pour ce site seulement.</p>
+   ${sites.map(x=>{const o=((ST.besoins['pt-'+x.pt]||{}).info)||{};return`<div style="border-top:1px solid var(--line);padding:8px 0"><b class="small">${esc(x.site)}</b><div class="two" style="margin-top:4px"><label class="small">Arrivée<input type="time" data-sp="${x.pt}" data-k="arr" value="${esc(o.arr||'')}"></label><label class="small">Badge<select data-sp="${x.pt}" data-k="badge"><option value="">Comme le client</option><option value="non" ${o.badge==='non'?'selected':''}>Non</option><option value="oui" ${o.badge==='oui'?'selected':''}>Oui</option></select></label></div><label class="small">Notes pour ce site<input data-sp="${x.pt}" data-k="notes" value="${esc(o.notes||'')}"></label></div>`}).join('')}</div>`;
+  $$('.cliS').forEach(b=>b.onclick=()=>{S.cliSel=b.dataset.c;renderClients()});
+  $('#cliForm').onchange=()=>{const f=$('#cliForm'),g=n=>f[n].value.trim(),info={arr:g('arr'),badge:f.badge.value,badgeNote:g('badgeNote'),noticeDays:+g('noticeDays')||0,noticeType:f.noticeType.value,noticeWho:g('noticeWho'),contactName:g('contactName'),contactTel:g('contactTel'),acces:g('acces'),consignes:g('consignes')};
+    put('clients',slug(c),{...(ST.clients[slug(c)]||{}),client:c,info,updated:new Date().toISOString()});toast('Consignes enregistrées')};
+  $$('[data-sp]').forEach(el=>el.onchange=()=>{const pt=el.dataset.sp,k='pt-'+pt,b=ST.besoins[k]||{},o={...(b.info||{}),[el.dataset.k]:el.value.trim()};put('besoins',k,{...b,info:o});toast('Particularité enregistrée')});
+}
+$('#cliQ').addEventListener('input',()=>renderClients());$('#cliF').addEventListener('change',()=>renderClients());
 function renderSynthese(){
   const C=ensureCalc(),Y=+today.slice(0,4);
   const unpl=[...C.res.entries()].filter(([n,r])=>r.status==='Non planifié'||r.status==='Partiel').map(([n])=>P.get(n)).filter(Boolean);
@@ -1907,12 +2028,14 @@ function renderSynthese(){
   <div class="syn">
    <div class="card"><h3 style="margin-top:0">Facturation des clients</h3><p style="margin:4px 0">${nF} au forfait · ${nM} en mensualités · ${nN} à définir</p><a href="#marche">Définir dans Marché &amp; prestations</a></div>
    <div class="card"><h3 style="margin-top:0">Prochaines absences</h3>${next.length?next.map(x=>`<div>${esc(x.p)} · ${dlab(x.d1)} → ${dlab(x.d2)} <span class="muted">${esc(x.type||'')}</span></div>`).join(''):'<span class="muted">Aucune absence saisie à venir.</span>'}</div>
+   <div class="card"><h3 style="margin-top:0">Clients à prévenir</h3>${(()=>{const l=noticeList(today,add(today,60)).filter(g=>!g.done&&g.warnBy<=add(today,14)).slice(0,10);return l.length?noticeHTML(l):'<span class="muted">Personne à prévenir dans les 14 prochains jours.</span>'})()}</div>
    <div class="card"><h3 style="margin-top:0">Journées incomplètes à traiter</h3>${incs.length?incs.map(x=>`<div><button class="sm ghost" data-goday="${x.d}" data-p="${esc(x.n)}" style="margin:2px 0">${esc(x.n)} · ${dlab(x.d)} · manque ${fh(x.miss)}</button></div>`).join('')+`<div class="muted small">${nInc} journées au total à partir d’aujourd’hui</div>`:'<span class="muted">Aucune journée incomplète à venir.</span>'}</div>
    <div class="card"><h3 style="margin-top:0">À vérifier</h3>${unpl.slice(0,8).map(p=>`<div>${esc(p.client)} · ${esc(p.act)} <span class="muted">${esc(C.res.get(p.n).status)}</span></div>`).join('')||'<span class="muted">Tous les passages sont planifiés.</span>'}${unpl.length>8?`<div class="muted">+ ${unpl.length-8} autres</div>`:''}</div>
   </div>`;
+  bindNotice($('#synBody'));
   $$('#synBody [data-goday]').forEach(el=>el.onclick=()=>{S.person=el.dataset.p;S.view='day';setDay(el.dataset.goday);location.hash='planning';renderNow()});
 }
-function route(){const h=location.hash.slice(1);S.tab=['synthese','planning','equipe','conges','meteo','marche','interroger','chantiers','machines'].includes(h)?h:'planning';renderNow()}
+function route(){const h=location.hash.slice(1);S.tab=['synthese','planning','clients','equipe','conges','meteo','marche','interroger','chantiers','machines'].includes(h)?h:'planning';renderNow()}
 window.addEventListener('hashchange',route);
 $('#pSel').onchange=e=>{S.person=e.target.value;renderNow()};
 $('#zSel').onchange=e=>{S.zone=e.target.value;renderNow()};
